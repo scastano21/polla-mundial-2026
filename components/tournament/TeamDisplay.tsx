@@ -1,6 +1,7 @@
 "use client";
 
-import { getFlagUrl } from "@/lib/flags";
+import { useEffect, useMemo, useState } from "react";
+import { getFlagUrlCandidates } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
 const dims = {
@@ -19,20 +20,55 @@ export function Flag({
   name: string;
   size?: keyof typeof dims;
 }) {
+  const candidates = useMemo(() => getFlagUrlCandidates(code), [code]);
+  const [idx, setIdx] = useState(0);
+  const [exhausted, setExhausted] = useState(false);
+
+  useEffect(() => {
+    setIdx(0);
+    setExhausted(false);
+  }, [code]);
+
+  const isPlaceholder = code.trim().toLowerCase().startsWith("ph-");
+
+  if (candidates.length === 0 || exhausted) {
+    return (
+      <span
+        title={name}
+        className={cn(
+          dims[size],
+          "inline-flex shrink-0 items-center justify-center rounded-sm border border-zinc-700 bg-zinc-800 text-[10px] text-zinc-500",
+          isPlaceholder && "opacity-50"
+        )}
+        aria-hidden
+      >
+        —
+      </span>
+    );
+  }
+
+  const src = candidates[Math.min(idx, candidates.length - 1)];
+
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element -- URLs externas (flagcdn / flagpedia) */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- CDN externo, varios fallbacks */}
       <img
-        src={getFlagUrl(code, 40)}
+        key={src}
+        src={src}
         alt={`Bandera de ${name}`}
         className={cn(
           dims[size],
           "rounded-sm object-cover shadow-sm",
-          code.startsWith("ph-") && "opacity-40"
+          isPlaceholder && "opacity-40"
         )}
         loading="lazy"
-        onError={(e) => {
-          e.currentTarget.style.opacity = "0.2";
+        decoding="async"
+        onError={() => {
+          if (idx + 1 < candidates.length) {
+            setIdx((i) => i + 1);
+          } else {
+            setExhausted(true);
+          }
         }}
       />
     </>

@@ -13,6 +13,7 @@ import {
   WC2026_KNOCKOUT_MATCHES,
   WC2026_TEAMS,
 } from "./wc2026-data";
+import { getFlagUrlCandidates } from "../lib/flags";
 
 const root = process.cwd();
 config({ path: resolve(root, ".env.local") });
@@ -43,11 +44,7 @@ const PHASES = [
 ];
 
 function flagUrl(code: string) {
-  const c = code.toLowerCase();
-  if (c === "gb-eng" || c === "gb-sct") {
-    return `https://flagpedia.net/data/flags/w40/${c}.png`;
-  }
-  return `https://flagcdn.com/w40/${c}.png`;
+  return getFlagUrlCandidates(code)[0] ?? "";
 }
 
 async function main() {

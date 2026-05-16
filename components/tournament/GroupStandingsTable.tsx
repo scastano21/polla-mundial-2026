@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
+import { Flag } from "@/components/tournament/TeamDisplay";
 
 export type StandingRow = {
   team_id: string;
@@ -64,7 +65,18 @@ export async function GroupStandingsTable({ groupLetter }: { groupLetter: string
           {merged.map((r) => (
             <tr key={r.team_id} className="border-t border-zinc-800 bg-zinc-950/50">
               <td className="px-3 py-2 text-zinc-400">{r.position ?? "—"}</td>
-              <td className="px-3 py-2 font-semibold">{r.team?.name ?? "—"}</td>
+              <td className="px-3 py-2">
+                <div className="flex items-center gap-2 font-semibold">
+                  {r.team ? (
+                    <>
+                      <Flag code={r.team.code} name={r.team.name} size="xs" />
+                      <span>{r.team.name}</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </td>
               <td className="px-3 py-2 text-center">{r.played}</td>
               <td className="px-3 py-2 text-center">{r.won}</td>
               <td className="px-3 py-2 text-center">{r.drawn}</td>
