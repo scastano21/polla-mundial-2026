@@ -1,0 +1,127 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { DonateNudge } from "@/components/donate-nudge";
+import { toast } from "sonner";
+
+export function SiteHeader() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("admin") === "denegado") {
+      toast.error("No tienes permiso para el panel de administración del torneo.");
+      params.delete("admin");
+      const qs = params.toString();
+      router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const syncProfile = async (uid: string) => {
+      const { data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle();
+      if (error) {
+        console.warn("[SiteHeader] profiles:", error.message);
+        setIsAdmin(false);
+        return;
+      }
+      setIsAdmin(!!data?.is_admin);
+    };
+
+    const init = async () => {
+      const {
+        data: { user: u },
+      } = await supabase.auth.getUser();
+      setUser(u);
+      if (u) await syncProfile(u.id);
+      else setIsAdmin(false);
+      setReady(true);
+    };
+
+    void init();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) void syncProfile(u.id);
+      else setIsAdmin(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsAdmin(false);
+    router.push("/");
+    router.refresh();
+  };
+
+  return (
+    <>
+    <header className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <Link href="/" className="font-black text-yellow-400">
+          Polla 2026
+        </Link>
+        <nav className="flex flex-wrap items-center justify-end gap-3 text-sm font-medium text-zinc-300">
+          <Link href="/fixture" className="hover:text-white">
+            Fixture
+          </Link>
+          <Link href="/donate" className="hover:text-white">
+            Donar
+          </Link>
+          <Link href="/dashboard" className="hover:text-white">
+            Mis pollas
+          </Link>
+          {ready && isAdmin && (
+            <Link href="/admin" className="hover:text-white" title="Administración del torneo (resultados)">
+              Admin torneo
+            </Link>
+          )}
+          {!ready ? (
+            <span className="h-9 w-20 animate-pulse rounded-lg bg-zinc-800" aria-hidden />
+          ) : user ? (
+            <div className="flex items-center gap-2">
+              <span className="max-w-[140px] truncate text-xs text-zinc-500" title={user.email ?? ""}>
+                {user.email}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-zinc-600 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
+                onClick={() => void signOut()}
+              >
+                Salir
+              </Button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg bg-zinc-800 px-3 py-1.5 text-white hover:bg-zinc-700"
+            >
+              Entrar
+            </Link>
+          )}
+        </nav>
+      </div>
+    </header>
+    <DonateNudge />
+    </>
+  );
+}
