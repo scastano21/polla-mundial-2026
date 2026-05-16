@@ -7,14 +7,23 @@ import { NextResponse, type NextRequest } from "next/server";
  * @see https://supabase.com/docs/guides/auth/server-side/nextjs
  */
 export async function middleware(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl?.trim() || !supabaseAnonKey?.trim()) {
+    console.error(
+      "[middleware] Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
+        "Configúralas en Vercel → Settings → Environment Variables (Production) y vuelve a desplegar."
+    );
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
-    request: { headers: request.headers },
+    request,
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -22,48 +31,49 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({
-            request: { headers: request.headers },
+            request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
         },
       },
-    }
-  );
+    });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("redirect", request.nextUrl.pathname);
-      return NextResponse.redirect(url);
+    if (request.nextUrl.pathname.startsWith("/admin")) {
+      if (!user) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("redirect", request.nextUrl.pathname);
+        return NextResponse.redirect(url);
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!profile?.is_admin) {
+        const denied = request.nextUrl.clone();
+        denied.pathname = "/dashboard";
+        denied.searchParams.set("admin", "denegado");
+        return NextResponse.redirect(denied);
+      }
     }
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
-    if (!profile?.is_admin) {
-      const denied = request.nextUrl.clone();
-      denied.pathname = "/dashboard";
-      denied.searchParams.set("admin", "denegado");
-      return NextResponse.redirect(denied);
-    }
+
+    return response;
+  } catch (err) {
+    console.error("[middleware]", err);
+    // Evita 500 MIDDLEWARE_INVOCATION_FAILED en Edge; la app carga sin refresco de sesión en esta petición.
+    return NextResponse.next();
   }
-
-  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Excluye estáticos de Next y favicon para no gastar el middleware en cada asset.
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
