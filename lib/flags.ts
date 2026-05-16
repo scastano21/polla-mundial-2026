@@ -1,29 +1,20 @@
 /**
- * Banderas desde CDNs públicos. flagcdn a veces falla (extensiones, red, códigos compuestos).
- * Prioridad: flag-icons (SVG vía jsDelivr) → flagcdn PNG → flagpedia (algunas subregiones).
+ * Banderas vía paquete `flag-icons` (CSS embebido en el build).
+ * No depende de CDN externos — evita bloqueos en Vercel / navegador.
  */
-const FLAG_ICONS_VER = "7.2.3";
-const JSDELIVR_FLAGS = `https://cdn.jsdelivr.net/npm/flag-icons@${FLAG_ICONS_VER}/flags/4x3`;
 
-export function getFlagUrlCandidates(code: string): string[] {
+/** Código ISO / flag-icons (ej. mx, gb-eng). null si no hay bandera. */
+export function normalizeTeamFlagCode(code: string | null | undefined): string | null {
+  if (!code) return null;
   const c = code.trim().toLowerCase();
-  if (!c || c.startsWith("ph-")) return [];
-
-  const svg = `${JSDELIVR_FLAGS}/${c}.svg`;
-  const pngCdn = `https://flagcdn.com/w40/${c}.png`;
-
-  if (c === "gb-eng" || c === "gb-sct" || c === "gb-wls" || c.startsWith("gb-")) {
-    return [svg, `https://flagpedia.net/data/flags/w40/${c}.png`, pngCdn];
-  }
-
-  return [svg, pngCdn];
+  if (!c || c.startsWith("ph-")) return null;
+  if (!/^[a-z0-9-]+$/.test(c)) return null;
+  return c;
 }
 
-/** Primera URL candidata (retrocompatibilidad; el tamaño lo define cada CDN/SVG). */
-export function getFlagUrl(code: string): string {
-  return getFlagUrlCandidates(code)[0] ?? "";
-}
-
-export function teamFlagUrl(code: string): string {
-  return getFlagUrl(code);
+/** Clases CSS flag-icons: `fi fi-mx`. */
+export function getFlagIconClasses(code: string | null | undefined): string | null {
+  const c = normalizeTeamFlagCode(code);
+  if (!c) return null;
+  return `fi fi-${c}`;
 }

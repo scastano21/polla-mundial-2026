@@ -13,7 +13,6 @@ import {
   WC2026_KNOCKOUT_MATCHES,
   WC2026_TEAMS,
 } from "./wc2026-data";
-import { getFlagUrlCandidates } from "../lib/flags";
 
 const root = process.cwd();
 config({ path: resolve(root, ".env.local") });
@@ -43,10 +42,6 @@ const PHASES = [
   { name: "Final", slug: "final", order_index: 7 },
 ];
 
-function flagUrl(code: string) {
-  return getFlagUrlCandidates(code)[0] ?? "";
-}
-
 async function main() {
   console.log("Limpiando datos existentes...");
   await supabase.from("predictions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -72,7 +67,7 @@ async function main() {
     name_en: t.name_en,
     code: t.code,
     group_letter: t.group_letter,
-    flag_url: flagUrl(t.code),
+    flag_url: null,
   }));
   const { data: teamsIns, error: tErr } = await supabase.from("teams").insert(teamRows).select("id, code, group_letter");
   if (tErr) throw tErr;
