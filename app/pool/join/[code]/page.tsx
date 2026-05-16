@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { lookupPoolByInviteCode } from "@/lib/pool-invite";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DEFAULT_MAX_POOL_MEMBERS } from "@/lib/constants";
@@ -17,20 +18,18 @@ export default async function JoinPoolCodePage({ params }: { params: { code: str
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?redirect=/pool/join/${encodeURIComponent(code)}`);
 
-  const { data: inviteRows, error: inviteErr } = await supabase.rpc("pool_by_invite_code", {
-    p_code: code,
-  });
+  const { pool, setupError } = await lookupPoolByInviteCode(code);
 
-  if (inviteErr) {
+  if (setupError) {
     return (
       <>
         <SiteHeader />
         <main className="mx-auto max-w-md px-4 py-16 text-center">
-          <h1 className="text-xl font-bold text-white">Configuración pendiente</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            Falta aplicar la migración SQL en Supabase:{" "}
-            <code className="rounded bg-zinc-800 px-1 text-xs">pool_by_invite_code</code> (
-            {inviteErr.message})
+          <h1 className="text-xl font-bold text-white">No se pudo cargar la invitación</h1>
+          <p className="mt-2 text-sm text-zinc-400">{setupError}</p>
+          <p className="mt-4 text-xs text-zinc-500">
+            Si eres el administrador del proyecto, ejecuta en Supabase SQL Editor el archivo{" "}
+            <code className="rounded bg-zinc-800 px-1">supabase/migrations/20260215120000_pool_by_invite_code.sql</code>
           </p>
           <Link
             href="/pool/join"
@@ -45,18 +44,6 @@ export default async function JoinPoolCodePage({ params }: { params: { code: str
       </>
     );
   }
-
-  type InvitePoolRow = {
-    id: string;
-    name: string;
-    invite_code: string;
-    max_members: number | null;
-    is_premium: boolean | null;
-    admin_id: string;
-    member_count: number;
-  };
-
-  const pool = (Array.isArray(inviteRows) ? inviteRows[0] : null) as InvitePoolRow | null;
 
   if (!pool) {
     return (

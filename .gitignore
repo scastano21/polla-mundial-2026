@@ -31,6 +31,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Banderas generadas por scripts/copy-flags.mjs (postinstall / build)
+/public/flags/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

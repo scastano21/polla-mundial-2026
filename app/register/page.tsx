@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { authRedirectTo } from "@/lib/auth-url";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export default function RegisterPage() {
       password,
       options: {
         data: { username: username || email.split("@")[0] },
+        emailRedirectTo: authRedirectTo("/login?confirmed=1"),
       },
     });
     if (error) {

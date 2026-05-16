@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/copy-flags.mjs && next build",
+    "postinstall": "node scripts/copy-flags.mjs",
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",

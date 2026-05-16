@@ -1,11 +1,14 @@
-import { getFlagIconClasses } from "@/lib/flags";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { getFlagSrcCandidates } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
-const flagTextSize = {
-  xs: "text-[14px]",
-  sm: "text-[20px]",
-  md: "text-[32px]",
-  lg: "text-[44px]",
+const dims = {
+  xs: "h-3.5 w-5",
+  sm: "h-5 w-8",
+  md: "h-8 w-12",
+  lg: "h-11 w-16",
 } as const;
 
 const placeholderBox = {
@@ -22,12 +25,20 @@ export function Flag({
 }: {
   code: string;
   name: string;
-  size?: keyof typeof flagTextSize;
+  size?: keyof typeof dims;
 }) {
-  const iconClasses = getFlagIconClasses(code);
+  const candidates = useMemo(() => getFlagSrcCandidates(code), [code]);
+  const [idx, setIdx] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setIdx(0);
+    setFailed(false);
+  }, [code]);
+
   const isPlaceholder = code.trim().toLowerCase().startsWith("ph-");
 
-  if (!iconClasses) {
+  if (!candidates.length || failed) {
     return (
       <span
         title={name}
@@ -43,18 +54,31 @@ export function Flag({
     );
   }
 
+  const src = candidates[Math.min(idx, candidates.length - 1)];
+
   return (
-    <span
-      role="img"
-      aria-label={`Bandera de ${name}`}
-      title={name}
-      className={cn(
-        iconClasses,
-        flagTextSize[size],
-        "inline-block shrink-0 overflow-hidden rounded-sm shadow-sm leading-none",
-        isPlaceholder && "opacity-40"
-      )}
-    />
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={src}
+        src={src}
+        alt={`Bandera de ${name}`}
+        className={cn(
+          dims[size],
+          "shrink-0 rounded-sm object-cover shadow-sm",
+          isPlaceholder && "opacity-40"
+        )}
+        loading="lazy"
+        decoding="async"
+        onError={() => {
+          if (idx + 1 < candidates.length) {
+            setIdx((i) => i + 1);
+          } else {
+            setFailed(true);
+          }
+        }}
+      />
+    </>
   );
 }
 
@@ -65,7 +89,7 @@ export function TeamDisplay({
 }: {
   team: { name: string; code: string } | null;
   align?: "left" | "right";
-  size?: keyof typeof flagTextSize;
+  size?: keyof typeof dims;
 }) {
   if (!team) {
     return (
