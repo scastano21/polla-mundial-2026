@@ -26,7 +26,14 @@ export function SiteHeader() {
   }, [router]);
 
   useEffect(() => {
-    const supabase = createClient();
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch (e) {
+      console.error("[SiteHeader] Supabase:", e);
+      setReady(true);
+      return;
+    }
 
     const syncProfile = async (uid: string) => {
       const { data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle();
@@ -63,7 +70,15 @@ export function SiteHeader() {
   }, []);
 
   const signOut = async () => {
-    const supabase = createClient();
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      setUser(null);
+      setIsAdmin(false);
+      router.push("/");
+      return;
+    }
     await supabase.auth.signOut();
     setUser(null);
     setIsAdmin(false);

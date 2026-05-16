@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabasePublicConfig } from "@/lib/supabase/public-env";
 
 /**
  * Refresca la sesión de Supabase en (casi) cada petición para que las cookies
@@ -7,14 +8,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * @see https://supabase.com/docs/guides/auth/server-side/nextjs
  */
 export async function middleware(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl?.trim() || !supabaseAnonKey?.trim()) {
-    console.error(
-      "[middleware] Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
-        "Configúralas en Vercel → Settings → Environment Variables (Production) y vuelve a desplegar."
-    );
+  let supabaseUrl: string;
+  let supabaseAnonKey: string;
+  try {
+    ({ url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabasePublicConfig());
+  } catch (e) {
+    console.error("[middleware]", e);
     return NextResponse.next();
   }
 
@@ -23,8 +22,7 @@ export async function middleware(request: NextRequest) {
   });
 
   try {
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {      cookies: {
         getAll() {
           return request.cookies.getAll();
         },
