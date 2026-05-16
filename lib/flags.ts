@@ -19,11 +19,11 @@ export function getFlagUrlCandidates(code: string): string[] {
   return [svg, pngCdn];
 }
 
-/** Primera URL candidata (retrocompatibilidad). */
-export function getFlagUrl(code: string, _size: 40 | 80 | 160 = 40): string {
+/** Primera URL candidata (retrocompatibilidad; el tamaño lo define cada CDN/SVG). */
+export function getFlagUrl(code: string): string {
   return getFlagUrlCandidates(code)[0] ?? "";
 }
 
 export function teamFlagUrl(code: string): string {
-  return getFlagUrl(code, 40);
+  return getFlagUrl(code);
 }
