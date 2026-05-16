@@ -1,6 +1,5 @@
 /**
- * Banderas servidas desde /public/flags (copiadas de flag-icons en build).
- * Fallback a CDN solo si falta el archivo local.
+ * Banderas: emoji para códigos ISO-2 (siempre visible) + SVG en /public/flags + CDN.
  */
 
 export function normalizeTeamFlagCode(code: string | null | undefined): string | null {
@@ -11,7 +10,17 @@ export function normalizeTeamFlagCode(code: string | null | undefined): string |
   return c;
 }
 
-/** Rutas a probar en orden (misma origen primero). */
+/** Emoji 🇲🇽 para códigos de 2 letras (mx, br, …). */
+export function flagEmoji(code: string | null | undefined): string | null {
+  const c = normalizeTeamFlagCode(code);
+  if (!c || c.length !== 2 || c.includes("-")) return null;
+  const upper = c.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(upper)) return null;
+  return String.fromCodePoint(
+    ...upper.split("").map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65)
+  );
+}
+
 export function getFlagSrcCandidates(code: string | null | undefined): string[] {
   const c = normalizeTeamFlagCode(code);
   if (!c) return [];
@@ -25,9 +34,4 @@ export function getFlagSrcCandidates(code: string | null | undefined): string[] 
   }
 
   return [local, cdnSvg, cdnPng];
-}
-
-/** @deprecated */
-export function getFlagIconClasses(code: string | null | undefined): string | null {
-  return normalizeTeamFlagCode(code) ? "fi" : null;
 }

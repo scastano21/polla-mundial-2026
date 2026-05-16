@@ -1,22 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getFlagSrcCandidates } from "@/lib/flags";
+import { flagEmoji, getFlagSrcCandidates } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
-const dims = {
+const emojiSize = {
+  xs: "text-sm leading-none",
+  sm: "text-xl leading-none",
+  md: "text-3xl leading-none",
+  lg: "text-4xl leading-none",
+} as const;
+
+const imgSize = {
   xs: "h-3.5 w-5",
   sm: "h-5 w-8",
   md: "h-8 w-12",
   lg: "h-11 w-16",
 } as const;
 
-const placeholderBox = {
-  xs: "h-3.5 w-5",
-  sm: "h-5 w-8",
-  md: "h-8 w-12",
-  lg: "h-11 w-16",
-} as const;
+const placeholderBox = imgSize;
 
 export function Flag({
   code,
@@ -25,20 +27,34 @@ export function Flag({
 }: {
   code: string;
   name: string;
-  size?: keyof typeof dims;
+  size?: keyof typeof imgSize;
 }) {
+  const emoji = useMemo(() => flagEmoji(code), [code]);
   const candidates = useMemo(() => getFlagSrcCandidates(code), [code]);
   const [idx, setIdx] = useState(0);
-  const [failed, setFailed] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
     setIdx(0);
-    setFailed(false);
+    setImgFailed(false);
   }, [code]);
 
   const isPlaceholder = code.trim().toLowerCase().startsWith("ph-");
 
-  if (!candidates.length || failed) {
+  if (emoji && !isPlaceholder) {
+    return (
+      <span
+        role="img"
+        aria-label={`Bandera de ${name}`}
+        title={name}
+        className={cn("inline-flex shrink-0 items-center justify-center", emojiSize[size])}
+      >
+        {emoji}
+      </span>
+    );
+  }
+
+  if (!candidates.length || imgFailed) {
     return (
       <span
         title={name}
@@ -63,18 +79,14 @@ export function Flag({
         key={src}
         src={src}
         alt={`Bandera de ${name}`}
-        className={cn(
-          dims[size],
-          "shrink-0 rounded-sm object-cover shadow-sm",
-          isPlaceholder && "opacity-40"
-        )}
+        className={cn(imgSize[size], "shrink-0 rounded-sm object-cover shadow-sm", isPlaceholder && "opacity-40")}
         loading="lazy"
         decoding="async"
         onError={() => {
           if (idx + 1 < candidates.length) {
             setIdx((i) => i + 1);
           } else {
-            setFailed(true);
+            setImgFailed(true);
           }
         }}
       />
@@ -89,7 +101,7 @@ export function TeamDisplay({
 }: {
   team: { name: string; code: string } | null;
   align?: "left" | "right";
-  size?: keyof typeof dims;
+  size?: keyof typeof imgSize;
 }) {
   if (!team) {
     return (

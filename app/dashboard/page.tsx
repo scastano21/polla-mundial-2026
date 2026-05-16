@@ -20,14 +20,13 @@ export default async function DashboardPage() {
 
   const { data: memberships } = await supabase
     .from("pool_members")
-    .select("pool_id, pools(id, name, invite_code, is_premium, max_members)")
+    .select("pool_id, pools(id, name, invite_code, max_members)")
     .eq("user_id", user.id);
 
   type PoolRow = {
     id: string;
     name: string;
     invite_code: string;
-    is_premium: boolean;
     max_members: number;
   };
 
