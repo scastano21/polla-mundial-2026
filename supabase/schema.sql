@@ -272,13 +272,14 @@ GRANT EXECUTE ON FUNCTION public.user_in_pool(uuid, uuid) TO authenticated, anon
 GRANT EXECUTE ON FUNCTION public.users_share_pool(uuid, uuid) TO authenticated, anon, service_role;
 
 -- Invitados: leer una polla solo si conocen el código exacto (no enumera pools).
+DROP FUNCTION IF EXISTS public.pool_by_invite_code(text);
+
 CREATE OR REPLACE FUNCTION public.pool_by_invite_code(p_code text)
 RETURNS TABLE (
   id uuid,
   name text,
   invite_code text,
   max_members int,
-  is_premium boolean,
   admin_id uuid,
   member_count bigint
 )
@@ -291,12 +292,11 @@ AS $$
     p.id,
     p.name,
     p.invite_code,
-    p.max_members,
-    p.is_premium,
+    COALESCE(p.max_members, 100),
     p.admin_id,
     (SELECT count(*)::bigint FROM public.pool_members pm WHERE pm.pool_id = p.id) AS member_count
   FROM public.pools p
-  WHERE p.invite_code = upper(trim(p_code))
+  WHERE upper(trim(p.invite_code)) = upper(trim(p_code))
   LIMIT 1;
 $$;
 

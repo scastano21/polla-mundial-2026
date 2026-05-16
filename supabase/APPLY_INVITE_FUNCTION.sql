@@ -1,5 +1,7 @@
 -- Ver supabase/FIX_PRODUCTION.sql (incluye columnas + función de invitación)
 
+DROP FUNCTION IF EXISTS public.pool_by_invite_code(text);
+
 CREATE OR REPLACE FUNCTION public.pool_by_invite_code(p_code text)
 RETURNS TABLE (
   id uuid,

@@ -12,6 +12,9 @@ ALTER TABLE public.pools ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALS
 ALTER TABLE public.pools ADD COLUMN IF NOT EXISTS description TEXT;
 
 -- Invitación por código (unirse sin ser miembro aún)
+-- Hay que borrar la función vieja si cambió el tipo de retorno (p. ej. quitamos is_premium).
+DROP FUNCTION IF EXISTS public.pool_by_invite_code(text);
+
 CREATE OR REPLACE FUNCTION public.pool_by_invite_code(p_code text)
 RETURNS TABLE (
   id uuid,
