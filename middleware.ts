@@ -49,20 +49,19 @@ export async function middleware(request: NextRequest) {
         url.searchParams.set("redirect", request.nextUrl.pathname);
         return NextResponse.redirect(url);
       }
-      let { data: profile } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (!profile) {
-        await supabase.rpc("ensure_my_profile");
-        ({ data: profile } = await supabase
+      let isAdmin = false;
+      const { data: viaRpc, error: rpcErr } = await supabase.rpc("am_i_tournament_admin");
+      if (!rpcErr && typeof viaRpc === "boolean") {
+        isAdmin = viaRpc;
+      } else {
+        const { data: profile } = await supabase
           .from("profiles")
           .select("is_admin")
           .eq("id", user.id)
-          .maybeSingle());
+          .maybeSingle();
+        isAdmin = !!profile?.is_admin;
       }
-      if (!profile?.is_admin) {
+      if (!isAdmin) {
         const denied = request.nextUrl.clone();
         denied.pathname = "/dashboard";
         denied.searchParams.set("admin", "denegado");

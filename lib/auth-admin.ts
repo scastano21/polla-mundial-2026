@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
+import { isTournamentAdmin } from "@/lib/tournament-admin";
 
 export async function getSessionUser() {
   const supabase = await createServerSupabase();
@@ -15,13 +16,9 @@ export async function requireAdmin() {
   if (!user) return { ok: false as const, status: 401, error: "No autenticado" };
 
   const supabase = await createServerSupabase();
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
+  const admin = await isTournamentAdmin(supabase, user.id);
 
-  if (error || !profile?.is_admin) {
+  if (!admin) {
     return { ok: false as const, status: 403, error: "Sin permisos de administrador" };
   }
 

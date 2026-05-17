@@ -127,6 +127,29 @@ REVOKE ALL ON FUNCTION public.grant_tournament_admin(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.grant_tournament_admin(text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.grant_tournament_admin(text) TO postgres;
 
+-- ── 1b) Ver is_admin aunque no tengas pollas (RLS) ─────────────
+
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
+CREATE POLICY "profiles_select_own" ON public.profiles
+  FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE OR REPLACE FUNCTION public.am_i_tournament_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT COALESCE(
+    (SELECT is_admin FROM public.profiles WHERE id = auth.uid()),
+    false
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.am_i_tournament_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.am_i_tournament_admin() TO authenticated;
+
 -- ── 2) Marcar TU cuenta como admin (cambia el email si hace falta) ──
 
 SELECT public.grant_tournament_admin('sebascossio1990@gmail.com'::text);

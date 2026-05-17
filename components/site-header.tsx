@@ -36,11 +36,26 @@ export function SiteHeader() {
     }
 
     const syncProfile = async (uid: string) => {
-      let { data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle();
-      if (!data && !error) {
-        await supabase.rpc("ensure_my_profile");
-        ({ data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle());
+      const { data: viaRpc, error: rpcErr } = await supabase.rpc("am_i_tournament_admin");
+      if (!rpcErr && typeof viaRpc === "boolean") {
+        setIsAdmin(viaRpc);
+        return;
       }
+
+      const res = await fetch("/api/me", { credentials: "include", cache: "no-store" });
+      if (res.ok) {
+        const body = (await res.json()) as { isAdmin?: boolean };
+        if (typeof body.isAdmin === "boolean") {
+          setIsAdmin(body.isAdmin);
+          return;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", uid)
+        .maybeSingle();
       if (error) {
         console.warn("[SiteHeader] profiles:", error.message);
         setIsAdmin(false);
