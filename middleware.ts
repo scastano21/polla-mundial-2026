@@ -49,11 +49,19 @@ export async function middleware(request: NextRequest) {
         url.searchParams.set("redirect", request.nextUrl.pathname);
         return NextResponse.redirect(url);
       }
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from("profiles")
         .select("is_admin")
         .eq("id", user.id)
         .maybeSingle();
+      if (!profile) {
+        await supabase.rpc("ensure_my_profile");
+        ({ data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", user.id)
+          .maybeSingle());
+      }
       if (!profile?.is_admin) {
         const denied = request.nextUrl.clone();
         denied.pathname = "/dashboard";

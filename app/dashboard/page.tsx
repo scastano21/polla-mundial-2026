@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DeletePoolButton } from "@/components/pool/delete-pool-button";
 import { SiteHeader } from "@/components/site-header";
+import { ensureMyProfile } from "@/lib/ensure-profile";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { COPY } from "@/lib/copy";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,6 +16,8 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/dashboard");
+
+  await ensureMyProfile(supabase);
 
   const { data: asAdmin } = await supabase.from("pools").select("*").eq("admin_id", user.id);
 

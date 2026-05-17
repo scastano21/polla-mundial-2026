@@ -36,7 +36,11 @@ export function SiteHeader() {
     }
 
     const syncProfile = async (uid: string) => {
-      const { data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle();
+      let { data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle();
+      if (!data && !error) {
+        await supabase.rpc("ensure_my_profile");
+        ({ data, error } = await supabase.from("profiles").select("is_admin").eq("id", uid).maybeSingle());
+      }
       if (error) {
         console.warn("[SiteHeader] profiles:", error.message);
         setIsAdmin(false);

@@ -43,3 +43,8 @@ $$;
 
 REVOKE ALL ON FUNCTION public.pool_by_invite_code(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pool_by_invite_code(text) TO authenticated;
+
+-- ─── Perfiles + admin del torneo (si el usuario “desaparece” o /admin no carga) ───
+-- Ver archivo completo: supabase/migrations/20260217120000_ensure_profile_grant_admin.sql
+-- Tras ejecutarlo, marca tu cuenta (cambia el email):
+--   SELECT public.grant_tournament_admin('tu-correo@gmail.com');
