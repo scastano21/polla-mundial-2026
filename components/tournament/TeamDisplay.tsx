@@ -4,13 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { flagEmoji, getFlagSrcCandidates } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
-const emojiSize = {
-  xs: "text-sm leading-none",
-  sm: "text-xl leading-none",
-  md: "text-3xl leading-none",
-  lg: "text-4xl leading-none",
-} as const;
-
 const imgSize = {
   xs: "h-3.5 w-5",
   sm: "h-5 w-8",
@@ -29,8 +22,8 @@ export function Flag({
   name: string;
   size?: keyof typeof imgSize;
 }) {
-  const emoji = useMemo(() => flagEmoji(code), [code]);
   const candidates = useMemo(() => getFlagSrcCandidates(code), [code]);
+  const emojiFallback = useMemo(() => flagEmoji(code), [code]);
   const [idx, setIdx] = useState(0);
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -41,20 +34,24 @@ export function Flag({
 
   const isPlaceholder = code.trim().toLowerCase().startsWith("ph-");
 
-  if (emoji && !isPlaceholder) {
-    return (
-      <span
-        role="img"
-        aria-label={`Bandera de ${name}`}
-        title={name}
-        className={cn("inline-flex shrink-0 items-center justify-center", emojiSize[size])}
-      >
-        {emoji}
-      </span>
-    );
-  }
-
   if (!candidates.length || imgFailed) {
+    if (emojiFallback && !isPlaceholder) {
+      return (
+        <span
+          role="img"
+          aria-label={`Bandera de ${name}`}
+          title={name}
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center text-xl leading-none",
+            size === "xs" && "text-sm",
+            size === "md" && "text-3xl",
+            size === "lg" && "text-4xl"
+          )}
+        >
+          {emojiFallback}
+        </span>
+      );
+    }
     return (
       <span
         title={name}
@@ -79,9 +76,14 @@ export function Flag({
         key={src}
         src={src}
         alt={`Bandera de ${name}`}
-        className={cn(imgSize[size], "shrink-0 rounded-sm object-cover shadow-sm", isPlaceholder && "opacity-40")}
+        className={cn(
+          imgSize[size],
+          "shrink-0 rounded-sm object-cover shadow-sm ring-1 ring-black/20",
+          isPlaceholder && "opacity-40"
+        )}
         loading="lazy"
         decoding="async"
+        referrerPolicy="no-referrer"
         onError={() => {
           if (idx + 1 < candidates.length) {
             setIdx((i) => i + 1);
