@@ -43,6 +43,18 @@ function LoginForm() {
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16">
       <h1 className="text-2xl font-black text-white">Entrar</h1>
+      {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+        <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-xs text-zinc-500">
+          Base de datos:{" "}
+          <span className="font-mono text-zinc-400">
+            {process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/^https?:\/\//, "")}
+          </span>
+          <br />
+          <span className="text-zinc-600">
+            Local y producción comparten usuarios si esta URL es la misma en Vercel.
+          </span>
+        </p>
+      )}
       <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <div>
           <Label htmlFor="email">Email</Label>

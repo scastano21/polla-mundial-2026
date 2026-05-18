@@ -10,6 +10,7 @@
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
     "set-admin": "tsx scripts/set-admin.ts",
+    "reset-password": "tsx scripts/reset-password.ts",
     "parse-third-matrix": "node scripts/parse-wiki-third-place-table.mjs"
   },
   "dependencies": {
