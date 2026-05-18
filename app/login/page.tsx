@@ -51,7 +51,9 @@ function LoginForm() {
           </span>
           <br />
           <span className="text-zinc-600">
-            Local y producción comparten usuarios si esta URL es la misma en Vercel.
+            Debe ser <span className="font-mono text-zinc-500">zpmjazocmuxswkmkzibt.supabase.co</span>{" "}
+            (igual que Vercel). Si ves otro nombre, copia <span className="font-mono">.env.local</span> desde{" "}
+            <span className="font-mono">polla-mundial-2026</span>.
           </span>
         </p>
       )}

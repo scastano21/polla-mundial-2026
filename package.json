@@ -11,6 +11,7 @@
     "seed": "tsx scripts/seed.ts",
     "set-admin": "tsx scripts/set-admin.ts",
     "reset-password": "tsx scripts/reset-password.ts",
+    "check-env": "node scripts/check-env-project.mjs",
     "parse-third-matrix": "node scripts/parse-wiki-third-place-table.mjs"
   },
   "dependencies": {
