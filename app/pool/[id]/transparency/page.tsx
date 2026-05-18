@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { PoolTransparencyPrintBar } from "@/components/pool/pool-transparency-print-bar";
 import { SiteHeader } from "@/components/site-header";
 import { COPY } from "@/lib/copy";
+import { fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -73,13 +74,9 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
     redirect("/dashboard");
   }
 
-  const [{ data: members }, { data: matches }, { data: teamRows }, { data: predictions }, { data: honors }, { data: honorTruth }] =
+  const [leaderboard, { data: matches }, { data: teamRows }, { data: predictions }, { data: honors }, { data: honorTruth }] =
     await Promise.all([
-      supabase
-        .from("pool_members")
-        .select("user_id, total_points, rank")
-        .eq("pool_id", pool.id)
-        .order("total_points", { ascending: false }),
+      fetchPoolLeaderboard(supabase, pool.id),
       supabase.from("matches").select("*").order("match_number"),
       supabase.from("teams").select("id, name, code"),
       supabase
@@ -90,21 +87,17 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
       supabase.from("honor_results").select("*").eq("tournament_year", 2026).maybeSingle(),
     ]);
 
-  const memberList = members ?? [];
-  const userIds = Array.from(new Set(memberList.map((m) => m.user_id)));
-  const profileMap = new Map<string, { display_name: string | null; username: string }>();
-  if (userIds.length) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name, username")
-      .in("id", userIds);
-    for (const p of profiles ?? []) {
-      profileMap.set(p.id, {
-        display_name: p.display_name,
-        username: p.username,
-      });
-    }
-  }
+  const memberList = leaderboard.map((m) => ({
+    user_id: m.user_id,
+    total_points: m.total_points,
+    rank: m.rank,
+  }));
+  const profileMap = new Map(
+    leaderboard.map((m) => [
+      m.user_id,
+      { display_name: m.display_name, username: m.username },
+    ])
+  );
 
   const teams = new Map<string, { name: string; code: string }>();
   for (const row of teamRows ?? []) {

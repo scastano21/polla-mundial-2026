@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PoolScoringBlurb } from "@/components/pool/pool-scoring-blurb";
 import { SiteHeader } from "@/components/site-header";
+import { fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,26 +30,7 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
     redirect("/dashboard");
   }
 
-  const { data: members } = await supabase
-    .from("pool_members")
-    .select("user_id, total_points, exact_scores, correct_results, rank")
-    .eq("pool_id", pool.id)
-    .order("total_points", { ascending: false });
-
-  const userIds = Array.from(new Set((members ?? []).map((m) => m.user_id)));
-  const profileMap = new Map<string, { display_name: string | null; username: string }>();
-  if (userIds.length) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name, username")
-      .in("id", userIds);
-    for (const p of profiles ?? []) {
-      profileMap.set(p.id, {
-        display_name: p.display_name,
-        username: p.username,
-      });
-    }
-  }
+  const leaderboard = await fetchPoolLeaderboard(supabase, pool.id);
 
   const isAdmin = pool.admin_id === user.id;
 
@@ -117,9 +99,8 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
               </tr>
             </thead>
             <tbody>
-              {(members ?? []).map((m, i) => {
-                const prof = profileMap.get(m.user_id);
-                const name = prof?.display_name || prof?.username || "Jugador";
+              {leaderboard.map((m, i) => {
+                const name = m.display_name || m.username || "Jugador";
                 return (
                   <tr key={m.user_id} className="border-t border-zinc-800">
                     <td className="px-3 py-2 text-zinc-400">{m.rank ?? i + 1}</td>
