@@ -25,7 +25,7 @@ if (!email || !password || password.length < 6) {
 }
 
 async function main() {
-  const sb = createClient(url, serviceKey, {
+  const sb = createClient(url!, serviceKey!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
