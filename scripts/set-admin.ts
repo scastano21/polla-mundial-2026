@@ -1,12 +1,12 @@
 /**
- * Marca un usuario como administrador del torneo (is_admin en public.profiles).
- * Crea el perfil si falta. Usa service role.
+ * Admin del torneo: profiles.is_admin + JWT app_metadata.tournament_admin
  *
  * Uso: npm run set-admin -- tu-correo@gmail.com
  */
 import { config } from "dotenv";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { grantTournamentAdminForUserId } from "../lib/grant-tournament-admin";
 
 const root = process.cwd();
 config({ path: resolve(root, ".env.local") });
@@ -30,30 +30,9 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { error: rpcErr } = await supabase.rpc("grant_tournament_admin", {
-    p_email: emailArg,
-  });
-
-  if (!rpcErr) {
-    console.log("Listo (grant_tournament_admin).");
-    console.log(`  email: ${emailArg}`);
-    console.log("\nCierra sesión en la web y vuelve a entrar para ver «Admin torneo».");
-    return;
-  }
-
-  if (
-    !rpcErr.message.includes("Could not find the function") &&
-    !rpcErr.message.includes("schema cache")
-  ) {
-    console.warn("RPC grant_tournament_admin:", rpcErr.message);
-    console.warn("Intentando modo manual (upsert en profiles)...");
-  }
-
   let userId: string | null = null;
-  let page = 1;
-  const perPage = 200;
-  for (;;) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+  for (let page = 1; page <= 100; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
     if (error) {
       console.error("Error listando usuarios:", error.message);
       process.exit(1);
@@ -63,48 +42,34 @@ async function main() {
       userId = hit.id;
       break;
     }
-    if (data.users.length < perPage) break;
-    page += 1;
-    if (page > 100) break;
+    if (data.users.length < 200) break;
   }
 
   if (!userId) {
-    console.error(`No existe ningún usuario en Auth con email: ${emailArg}`);
-    console.error("Regístrate primero en la app con ese correo y vuelve a ejecutar.");
+    console.error(`No existe usuario en Auth: ${emailArg}`);
     process.exit(1);
   }
 
-  const username = `user_${userId.replace(/-/g, "").slice(0, 8)}`;
-  const displayName = emailArg.split("@")[0];
-
-  const { error: uErr } = await supabase.from("profiles").upsert(
-    {
-      id: userId,
-      username,
-      display_name: displayName,
-      is_admin: true,
-    },
-    { onConflict: "id" }
-  );
-
-  if (uErr) {
-    const { error: updErr } = await supabase
-      .from("profiles")
-      .update({ is_admin: true })
-      .eq("id", userId);
-    if (updErr) {
-      console.error("Error marcando admin:", updErr.message);
+  const { error: rpcErr } = await supabase.rpc("grant_tournament_admin", { p_email: emailArg });
+  if (!rpcErr) {
+    await grantTournamentAdminForUserId(supabase, userId, emailArg);
+    console.log("OK (SQL grant_tournament_admin + JWT app_metadata)");
+  } else {
+    const result = await grantTournamentAdminForUserId(supabase, userId, emailArg);
+    if (!result.ok) {
+      console.error(result.error);
       process.exit(1);
     }
+    console.log("OK (profiles + JWT app_metadata; RPC no disponible)");
   }
 
-  console.log("Listo. Usuario admin del torneo:");
-  console.log(`  id:    ${userId}`);
-  console.log(`  email: ${emailArg}`);
-  console.log("\nCierra sesión y vuelve a entrar (o recarga fuerte) para ver «Admin torneo».");
-  console.log(
-    "\nSi sigue sin funcionar, ejecuta en Supabase SQL Editor:\n  supabase/migrations/20260217120000_ensure_profile_grant_admin.sql"
-  );
+  const { data: u } = await supabase.auth.admin.getUserById(userId);
+  console.log(`  id:       ${userId}`);
+  console.log(`  email:    ${emailArg}`);
+  console.log(`  JWT:      tournament_admin=${u.user?.app_metadata?.tournament_admin === true}`);
+  console.log("\nIMPORTANTE: cierra sesión en la web y vuelve a entrar (JWT nuevo).");
+  console.log("En Vercel añade también (opcional respaldo):");
+  console.log(`  TOURNAMENT_ADMIN_EMAILS=${emailArg}`);
 }
 
 main().catch((e) => {

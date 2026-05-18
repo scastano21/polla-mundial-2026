@@ -16,7 +16,7 @@ export async function requireAdmin() {
   if (!user) return { ok: false as const, status: 401, error: "No autenticado" };
 
   const supabase = await createServerSupabase();
-  const admin = await isTournamentAdmin(supabase, user.id);
+  const admin = await isTournamentAdmin(supabase, user);
 
   if (!admin) {
     return { ok: false as const, status: 403, error: "Sin permisos de administrador" };

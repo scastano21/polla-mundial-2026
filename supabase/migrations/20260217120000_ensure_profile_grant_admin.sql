@@ -117,6 +117,11 @@ BEGIN
   INSERT INTO public.profiles (id, username, display_name, is_admin)
   VALUES (uid, uname, dname, true)
   ON CONFLICT (id) DO UPDATE SET is_admin = true;
+
+  UPDATE auth.users
+  SET raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
+    || jsonb_build_object('tournament_admin', true)
+  WHERE id = uid;
 END;
 $$;
 

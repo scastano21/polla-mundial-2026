@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/public-env";
+import { isAdminFromUserMetadata } from "@/lib/tournament-admin";
 
 /**
  * Refresca la sesión de Supabase en (casi) cada petición para que las cookies
@@ -49,17 +50,18 @@ export async function middleware(request: NextRequest) {
         url.searchParams.set("redirect", request.nextUrl.pathname);
         return NextResponse.redirect(url);
       }
-      let isAdmin = false;
-      const { data: viaRpc, error: rpcErr } = await supabase.rpc("am_i_tournament_admin");
-      if (!rpcErr && typeof viaRpc === "boolean") {
-        isAdmin = viaRpc;
-      } else {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", user.id)
-          .maybeSingle();
-        isAdmin = !!profile?.is_admin;
+      let isAdmin = isAdminFromUserMetadata(user);
+      if (!isAdmin) {
+        const { data: viaRpc, error: rpcErr } = await supabase.rpc("am_i_tournament_admin");
+        if (!rpcErr && viaRpc === true) isAdmin = true;
+        else {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_admin")
+            .eq("id", user.id)
+            .maybeSingle();
+          isAdmin = !!profile?.is_admin;
+        }
       }
       if (!isAdmin) {
         const denied = request.nextUrl.clone();

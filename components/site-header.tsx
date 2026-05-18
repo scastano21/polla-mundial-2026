@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { isAdminFromUserMetadata } from "@/lib/tournament-admin";
 import { Button } from "@/components/ui/button";
 import { DonateNudge } from "@/components/donate-nudge";
 import { toast } from "sonner";
@@ -35,26 +36,31 @@ export function SiteHeader() {
       return;
     }
 
-    const syncProfile = async (uid: string) => {
-      const { data: viaRpc, error: rpcErr } = await supabase.rpc("am_i_tournament_admin");
-      if (!rpcErr && typeof viaRpc === "boolean") {
-        setIsAdmin(viaRpc);
+    const syncAdmin = async (u: User) => {
+      if (isAdminFromUserMetadata(u)) {
+        setIsAdmin(true);
         return;
       }
 
       const res = await fetch("/api/me", { credentials: "include", cache: "no-store" });
       if (res.ok) {
         const body = (await res.json()) as { isAdmin?: boolean };
-        if (typeof body.isAdmin === "boolean") {
-          setIsAdmin(body.isAdmin);
+        if (body.isAdmin === true) {
+          setIsAdmin(true);
           return;
         }
+      }
+
+      const { data: viaRpc, error: rpcErr } = await supabase.rpc("am_i_tournament_admin");
+      if (!rpcErr && viaRpc === true) {
+        setIsAdmin(true);
+        return;
       }
 
       const { data, error } = await supabase
         .from("profiles")
         .select("is_admin")
-        .eq("id", uid)
+        .eq("id", u.id)
         .maybeSingle();
       if (error) {
         console.warn("[SiteHeader] profiles:", error.message);
@@ -69,7 +75,7 @@ export function SiteHeader() {
         data: { user: u },
       } = await supabase.auth.getUser();
       setUser(u);
-      if (u) await syncProfile(u.id);
+      if (u) await syncAdmin(u);
       else setIsAdmin(false);
       setReady(true);
     };
@@ -81,7 +87,7 @@ export function SiteHeader() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) void syncProfile(u.id);
+      if (u) void syncAdmin(u);
       else setIsAdmin(false);
     });
 

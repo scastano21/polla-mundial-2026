@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   const supabase = await createServerSupabase();
-  const isAdmin = await isTournamentAdmin(supabase, user.id);
+  const isAdmin = await isTournamentAdmin(supabase, user);
 
   return NextResponse.json({
     loggedIn: true,
