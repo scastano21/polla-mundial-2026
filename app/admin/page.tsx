@@ -9,20 +9,28 @@ export default async function AdminHomePage() {
   let pools = 0;
   let users = 0;
   let pending = 0;
+  let authUsers = 0;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
   if (svc) {
-    const [a, b, c] = await Promise.all([
+    const [a, b, c, authList] = await Promise.all([
       svc.from("pools").select("*", { count: "exact", head: true }),
       svc.from("profiles").select("*", { count: "exact", head: true }),
       svc.from("matches").select("*", { count: "exact", head: true }).eq("status", "scheduled"),
+      svc.auth.admin.listUsers({ page: 1, perPage: 1 }),
     ]);
     pools = a.count ?? 0;
     users = b.count ?? 0;
     pending = c.count ?? 0;
+    authUsers = authList.data?.total ?? authList.data?.users?.length ?? 0;
   } else {
     const sb = await createServerSupabase();
-    const pc = await sb.from("pools").select("*", { count: "exact", head: true });
+    const [pc, prof] = await Promise.all([
+      sb.from("pools").select("*", { count: "exact", head: true }),
+      sb.from("profiles").select("*", { count: "exact", head: true }),
+    ]);
     pools = pc.count ?? 0;
+    users = prof.count ?? 0;
   }
 
   return (
@@ -33,8 +41,25 @@ export default async function AdminHomePage() {
         </p>
         <h1 className="text-3xl font-black">FIFA Mundial 2026</h1>
         {!svc && (
+          <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-200">
+            Falta <strong>SUPABASE_SERVICE_ROLE_KEY</strong> en este entorno (en Vercel → Settings →
+            Environment Variables → Production). Sin ella el panel no puede contar usuarios ni leer
+            todas las pollas. La URL debe ser{" "}
+            <span className="font-mono text-amber-100">zpmjazocmuxswkmkzibt.supabase.co</span>
+            {supabaseUrl && !supabaseUrl.includes("zpmjazocmuxswkmkzibt") && (
+              <>
+                {" "}
+                — ahora tienes otra:{" "}
+                <span className="font-mono">{supabaseUrl.replace(/^https?:\/\//, "")}</span>
+              </>
+            )}
+            .
+          </p>
+        )}
+        {svc && authUsers > 0 && users === 0 && (
           <p className="mt-2 text-xs text-amber-400">
-            Añade SUPABASE_SERVICE_ROLE_KEY en .env.local para ver conteos completos en local.
+            Hay {authUsers} cuenta(s) en Auth pero 0 perfiles: ejecuta el trigger/SQL de perfiles o
+            que cada usuario entre una vez a la app.
           </p>
         )}
       </header>
