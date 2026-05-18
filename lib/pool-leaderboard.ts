@@ -11,32 +11,17 @@ export type PoolLeaderboardRow = {
   rank: number | null;
 };
 
-/** Miembros + nombres para la tabla de la polla (RPC o service role; evita RLS roto en prod). */
-export async function fetchPoolLeaderboard(
-  supabase: SupabaseClient,
+async function loadLeaderboardFromDb(
+  client: SupabaseClient,
   poolId: string
 ): Promise<PoolLeaderboardRow[]> {
-  const { data: viaRpc, error: rpcErr } = await supabase.rpc("list_pool_members", {
-    p_pool_id: poolId,
-  });
-
-  if (!rpcErr && Array.isArray(viaRpc)) {
-    return viaRpc as PoolLeaderboardRow[];
-  }
-
-  const svc = tryCreateServiceClient();
-  const client = svc ?? supabase;
-
   const { data: members, error: mErr } = await client
     .from("pool_members")
     .select("user_id, total_points, exact_scores, correct_results, rank")
     .eq("pool_id", poolId)
     .order("total_points", { ascending: false });
 
-  if (mErr || !members?.length) {
-    if (rpcErr) console.warn("[pool-leaderboard] list_pool_members:", rpcErr.message);
-    return [];
-  }
+  if (mErr || !members?.length) return [];
 
   const userIds = members.map((m) => m.user_id);
   const { data: profiles } = await client
@@ -58,4 +43,32 @@ export async function fetchPoolLeaderboard(
       rank: m.rank,
     };
   });
+}
+
+/**
+ * Miembros + nombres para tabla / transparencia.
+ * Tras validar acceso en la ruta, service role evita RLS roto en producción.
+ */
+export async function fetchPoolLeaderboard(
+  supabase: SupabaseClient,
+  poolId: string
+): Promise<PoolLeaderboardRow[]> {
+  const svc = tryCreateServiceClient();
+  if (svc) {
+    return loadLeaderboardFromDb(svc, poolId);
+  }
+
+  const { data: viaRpc, error: rpcErr } = await supabase.rpc("list_pool_members", {
+    p_pool_id: poolId,
+  });
+
+  if (!rpcErr && Array.isArray(viaRpc) && viaRpc.length > 0) {
+    return viaRpc as PoolLeaderboardRow[];
+  }
+
+  if (rpcErr) {
+    console.warn("[pool-leaderboard] list_pool_members:", rpcErr.message);
+  }
+
+  return loadLeaderboardFromDb(supabase, poolId);
 }

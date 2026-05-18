@@ -57,18 +57,23 @@ export async function POST(request: Request) {
     new_away_score: awayScore,
   });
 
-  const { error: uErr } = await supabase
+  const baseUpdate = {
+    home_score: homeScore,
+    away_score: awayScore,
+    home_penalties: homePenalties,
+    away_penalties: awayPenalties,
+    status: "finished" as const,
+    updated_at: new Date().toISOString(),
+  };
+
+  let { error: uErr } = await supabase
     .from("matches")
-    .update({
-      home_score: homeScore,
-      away_score: awayScore,
-      home_penalties: homePenalties,
-      away_penalties: awayPenalties,
-      status: "finished",
-      updated_at: new Date().toISOString(),
-      updated_by: auth.userId,
-    })
+    .update({ ...baseUpdate, updated_by: auth.userId })
     .eq("id", matchId);
+
+  if (uErr?.message?.includes("updated_by")) {
+    ({ error: uErr } = await supabase.from("matches").update(baseUpdate).eq("id", matchId));
+  }
 
   if (uErr) {
     return NextResponse.json({ error: uErr.message }, { status: 500 });

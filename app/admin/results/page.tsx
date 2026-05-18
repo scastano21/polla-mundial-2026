@@ -281,7 +281,7 @@ function ResultRow({
             onClick={handleReset}
             className="border-zinc-500 text-zinc-200 hover:bg-zinc-700"
           >
-            {resetting ? "Reiniciando…" : "Reiniciar"}
+            {resetting ? "Eliminando…" : "Eliminar resultado"}
           </Button>
         )}
       </div>

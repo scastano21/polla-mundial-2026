@@ -64,10 +64,7 @@ export default async function FixturePage({
     <>
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="mb-2 text-3xl font-black text-white">Fixture</h1>
-        <p className="mb-6 text-sm text-zinc-400">
-          Actualiza el seed cuando FIFA publique el calendario definitivo.
-        </p>
+        <h1 className="mb-6 text-3xl font-black text-white">Fixture</h1>
 
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
           {phaseRows.map((p) => (

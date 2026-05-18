@@ -17,12 +17,21 @@ export function SiteHeader() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const denied = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("flash_tournament_admin_denied="));
+    if (denied) {
+      document.cookie =
+        "flash_tournament_admin_denied=; Path=/; Max-Age=0; SameSite=Lax";
+      toast.error(
+        "El panel «Admin torneo» es solo para quien administra los resultados del Mundial, no para admins de cada polla."
+      );
+    }
     const params = new URLSearchParams(window.location.search);
     if (params.get("admin") === "denegado") {
-      toast.error("No tienes permiso para el panel de administración del torneo.");
       params.delete("admin");
       const qs = params.toString();
-      router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`);
+      router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
     }
   }, [router]);
 

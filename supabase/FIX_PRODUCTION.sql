@@ -44,8 +44,11 @@ $$;
 REVOKE ALL ON FUNCTION public.pool_by_invite_code(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pool_by_invite_code(text) TO authenticated;
 
+-- ─── Resultados admin (columna updated_by en matches) ───
+-- Ejecutar: supabase/FIX_MATCHES_COLUMNS.sql
+
 -- ─── Tabla de miembros en pollas (Vercel no muestra a todos) ───
--- Ejecutar también: supabase/FIX_POOL_MEMBERS_PRODUCTION.sql
+-- Ejecutar: supabase/FIX_POOL_MEMBERS_PRODUCTION.sql
 
 -- ─── Perfiles + admin del torneo (si el usuario “desaparece” o /admin no carga) ───
 -- Ver archivo completo: supabase/migrations/20260217120000_ensure_profile_grant_admin.sql

@@ -66,8 +66,13 @@ export async function middleware(request: NextRequest) {
       if (!isAdmin) {
         const denied = request.nextUrl.clone();
         denied.pathname = "/dashboard";
-        denied.searchParams.set("admin", "denegado");
-        return NextResponse.redirect(denied);
+        const res = NextResponse.redirect(denied);
+        res.cookies.set("flash_tournament_admin_denied", "1", {
+          maxAge: 30,
+          path: "/",
+          sameSite: "lax",
+        });
+        return res;
       }
     }
 
