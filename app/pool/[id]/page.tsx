@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PoolScoringBlurb } from "@/components/pool/pool-scoring-blurb";
 import { SiteHeader } from "@/components/site-header";
-import { fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
+import { PoolLeaderboardTable } from "@/components/pool/pool-leaderboard-table";
+import { countPoolMembers, fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,10 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
     redirect("/dashboard");
   }
 
-  const leaderboard = await fetchPoolLeaderboard(supabase, pool.id);
+  const [leaderboard, memberCountDb] = await Promise.all([
+    fetchPoolLeaderboard(supabase, pool.id),
+    countPoolMembers(pool.id),
+  ]);
 
   const isAdmin = pool.admin_id === user.id;
 
@@ -87,33 +91,11 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
         <PoolScoringBlurb rules={rulesRow} />
 
         <h2 className="mb-3 text-lg font-bold text-white">Tabla</h2>
-        <div className="overflow-hidden rounded-xl border border-zinc-800">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-900 text-xs uppercase text-zinc-500">
-              <tr>
-                <th className="px-3 py-2">#</th>
-                <th className="px-3 py-2">Jugador</th>
-                <th className="px-3 py-2 text-center">Pts</th>
-                <th className="px-3 py-2 text-center">Exactos</th>
-                <th className="px-3 py-2 text-center">Resultado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((m, i) => {
-                const name = m.display_name || m.username || "Jugador";
-                return (
-                  <tr key={m.user_id} className="border-t border-zinc-800">
-                    <td className="px-3 py-2 text-zinc-400">{m.rank ?? i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-white">{name}</td>
-                    <td className="px-3 py-2 text-center font-bold text-yellow-400">{m.total_points}</td>
-                    <td className="px-3 py-2 text-center text-zinc-400">{m.exact_scores}</td>
-                    <td className="px-3 py-2 text-center text-zinc-400">{m.correct_results}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <PoolLeaderboardTable
+          poolId={pool.id}
+          initialRows={leaderboard}
+          memberCountHint={memberCountDb}
+        />
 
         <p className="mt-8 text-center text-sm text-zinc-600">
           <Link href="/dashboard" className="text-yellow-500 hover:underline">

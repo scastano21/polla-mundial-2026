@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { PoolTransparencyPrintBar } from "@/components/pool/pool-transparency-print-bar";
 import { SiteHeader } from "@/components/site-header";
 import { COPY } from "@/lib/copy";
-import { fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
+import { PoolMembersReload } from "@/components/pool/pool-members-reload";
+import { countPoolMembers, fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -74,9 +75,10 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
     redirect("/dashboard");
   }
 
-  const [leaderboard, { data: matches }, { data: teamRows }, { data: predictions }, { data: honors }, { data: honorTruth }] =
+  const [leaderboard, memberCountDb, { data: matches }, { data: teamRows }, { data: predictions }, { data: honors }, { data: honorTruth }] =
     await Promise.all([
       fetchPoolLeaderboard(supabase, pool.id),
+      countPoolMembers(pool.id),
       supabase.from("matches").select("*").order("match_number"),
       supabase.from("teams").select("id, name, code"),
       supabase
@@ -154,6 +156,14 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
         <SiteHeader />
       </div>
       <main className="mx-auto max-w-[100rem] px-4 py-8 print:bg-white print:py-4 print:text-black">
+        <PoolMembersReload poolId={pool.id} serverMemberCount={memberList.length} />
+        {memberList.length === 0 && memberCountDb != null && memberCountDb > 0 && (
+          <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-200 print:hidden">
+            Hay {memberCountDb} integrantes en la polla pero no se pudieron mostrar. Comprueba{" "}
+            <strong>SUPABASE_SERVICE_ROLE_KEY</strong> en Vercel y ejecuta{" "}
+            <code className="text-amber-100">FIX_POOL_MEMBERS_PRODUCTION.sql</code> en Supabase.
+          </p>
+        )}
         <div className="mb-6 flex flex-col gap-4 print:mb-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-black text-white print:text-black">Transparencia · {pool.name}</h1>
