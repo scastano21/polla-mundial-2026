@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { COPY } from "@/lib/copy";
+import { TournamentLockBanner } from "@/components/tournament-lock-banner";
+import type { TournamentLockState } from "@/lib/tournament-lock";
 
 type Team = { id: string; name: string };
 
@@ -35,12 +37,14 @@ export default function PoolHonorPage() {
   const [young, setYoung] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [readOnly, setReadOnly] = useState(false);
+  const [lock, setLock] = useState<TournamentLockState | null>(null);
 
   useEffect(() => {
     (async () => {
       const { data: t } = await supabase.from("teams").select("id, name").order("name");
       setTeams((t ?? []) as Team[]);
+      const lockRes = await fetch("/api/tournament/lock-status", { cache: "no-store" });
+      if (lockRes.ok) setLock((await lockRes.json()) as TournamentLockState);
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -59,14 +63,23 @@ export default function PoolHonorPage() {
         setBest(row.best_player_name ?? "");
         setKeeper(row.best_goalkeeper_name ?? "");
         setYoung(row.best_young_player_name ?? "");
-        setReadOnly(true);
       }
       setLoading(false);
     })();
   }, [poolId, supabase]);
 
+  const globalClosed = lock !== null && !lock.open;
+  const readOnly = globalClosed;
+
   const save = async () => {
-    if (readOnly) return;
+    if (readOnly) {
+      toast.error("El plazo del cuadro de honor ya cerró.");
+      return;
+    }
+    if (!champion || !runner || !third || !scorer.trim() || !best.trim() || !keeper.trim() || !young.trim()) {
+      toast.error("Completa todos los campos del cuadro de honor antes de guardar.");
+      return;
+    }
     setSaving(true);
     const {
       data: { user },
@@ -92,10 +105,7 @@ export default function PoolHonorPage() {
     );
     setSaving(false);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Cuadro de honor guardado");
-      setReadOnly(true);
-    }
+    else toast.success("Cuadro de honor guardado");
   };
 
   if (loading) {
@@ -114,6 +124,7 @@ export default function PoolHonorPage() {
         <h1 className="text-2xl font-black text-white">{COPY.honor.title}</h1>
         <p className="mt-2 text-sm text-zinc-400">{COPY.honor.subtitle}</p>
         <p className="mt-1 text-xs text-yellow-600/90">{COPY.honor.deadline}</p>
+        <TournamentLockBanner className="mt-4" />
 
         <div className="mt-8 space-y-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
           <div>

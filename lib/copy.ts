@@ -33,8 +33,9 @@ export const COPY = {
   honor: {
     title: "🏆 Cuadro de honor — una sola oportunidad",
     subtitle:
-      "Estos pronósticos se hacen una vez, antes del primer partido. No los puedes cambiar.",
-    deadline: "Cierra el 11 de junio antes del primer pitazo.",
+      "Complétalo antes del cierre global (5 min antes del inaugural). Puedes editarlo hasta ese momento.",
+    deadline:
+      "Cierra 5 minutos antes del pitazo inaugural (México vs Sudáfrica). Todo incompleto suma 0 puntos.",
     sections: {
       champion: "Campeón del mundo",
       runner_up: "Subcampeón",
@@ -53,7 +54,7 @@ export const COPY = {
       "El Mundial empieza el 11 de junio. Crea tu grupo hoy y dale tiempo a tus amigos de hacer sus pronósticos.",
     no_pools_cta: "Crear mi primera polla",
     no_predictions:
-      "¡No has hecho tus pronósticos! Tienes tiempo hasta el primer partido.",
+      "¡No has hecho tus pronósticos! Tienes hasta 5 minutos antes del partido inaugural para completar toda la polla.",
   },
   upgrade: {
     banner_2: "🔥 Quedan pocos cupos en el grupo. Pide al admin que suba el límite si hace falta.",

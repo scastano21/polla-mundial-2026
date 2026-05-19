@@ -11,6 +11,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { TournamentLockBanner } from "@/components/tournament-lock-banner";
+import { PredictionProgress } from "@/components/pool/prediction-progress";
+import type { TournamentLockState } from "@/lib/tournament-lock";
 
 type MatchRow = {
   id: string;
@@ -35,6 +38,7 @@ export default function PoolPredictPage() {
   const [preds, setPreds] = useState<Record<string, { h: string; a: string; locked: boolean }>>({});
   const [loading, setLoading] = useState(true);
   const [rules, setRules] = useState<PoolScoringRulesRow>(null);
+  const [lock, setLock] = useState<TournamentLockState | null>(null);
 
   const load = useCallback(async () => {
     const { data: m } = await supabase.from("matches").select("*").order("match_number");
@@ -71,6 +75,8 @@ export default function PoolPredictPage() {
       };
     }
     setPreds(map);
+    const lockRes = await fetch("/api/tournament/lock-status", { cache: "no-store" });
+    if (lockRes.ok) setLock((await lockRes.json()) as TournamentLockState);
     setLoading(false);
   }, [poolId, supabase]);
 
@@ -78,9 +84,14 @@ export default function PoolPredictPage() {
     load();
   }, [load]);
 
+  const globalClosed = lock !== null && !lock.open;
+
   const saveOne = async (match: MatchRow) => {
     const cur = preds[match.id];
-    if (!cur || cur.locked || match.status !== "scheduled") return;
+    if (!cur || cur.locked || match.status !== "scheduled" || globalClosed) {
+      if (globalClosed) toast.error("El plazo de pronósticos ya cerró (5 min antes del inaugural).");
+      return;
+    }
     const h = parseInt(cur.h, 10);
     const a = parseInt(cur.a, 10);
     if (Number.isNaN(h) || Number.isNaN(a) || h < 0 || a < 0 || h > 20 || a > 20) {
@@ -133,19 +144,21 @@ export default function PoolPredictPage() {
             Tabla
           </Link>
         </div>
+        <TournamentLockBanner className="mb-4" />
         <PoolScoringBlurb rules={rules} />
+        <PredictionProgress poolId={poolId} className="mb-4" />
         <p className="mb-4 text-sm text-zinc-400">
-          Partidos programados: ingresa marcador y guarda. Se bloquean cuando el admin cierra el partido. En
-          eliminatoria, los equipos en &quot;TBD&quot; se rellenan solos al cerrar la fase de grupos (cruces FIFA) y
-          al ir definiendo cada ronda; si algo no cuadra, el admin puede usar &quot;Sincronizar cruces&quot; en el
-          panel.
+          Completa y guarda todos los partidos (grupos y eliminatoria) y el cuadro de honor antes del cierre
+          global. Lo que no guardes suma 0 puntos. Tras el cierre, solo el admin puede registrar resultados
+          oficiales. En eliminatoria, los equipos &quot;TBD&quot; se rellenan al avanzar el torneo; puedes pronosticar
+          igual desde ya.
         </p>
         <div className="space-y-3">
           {matches.map((m) => {
             const ht = m.home_team_id ? teams.get(m.home_team_id) : null;
             const at = m.away_team_id ? teams.get(m.away_team_id) : null;
             const cur = preds[m.id] ?? { h: "", a: "", locked: false };
-            const disabled = m.status !== "scheduled" || cur.locked;
+            const disabled = globalClosed || m.status !== "scheduled" || cur.locked;
             return (
               <div
                 key={m.id}

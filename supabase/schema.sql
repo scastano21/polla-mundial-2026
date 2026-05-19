@@ -303,6 +303,29 @@ $$;
 REVOKE ALL ON FUNCTION public.pool_by_invite_code(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pool_by_invite_code(text) TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.tournament_predictions_window_open()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    now() < (
+      SELECT COALESCE(
+        (SELECT m.match_date - interval '5 minutes'
+         FROM matches m
+         WHERE m.match_number = 1
+         LIMIT 1),
+        (SELECT min(m2.match_date) - interval '5 minutes' FROM matches m2)
+      )
+    ),
+    false
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.tournament_predictions_window_open() TO authenticated;
+
 -- ─── RLS ─────────────────────────────────────────────────────
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
@@ -356,8 +379,12 @@ CREATE POLICY "predictions_select_pool_members" ON predictions FOR SELECT USING 
     SELECT 1 FROM pools p WHERE p.id = predictions.pool_id AND p.admin_id = auth.uid()
   )
 );
-CREATE POLICY "predictions_insert_own" ON predictions FOR INSERT WITH CHECK (user_id = auth.uid());
-CREATE POLICY "predictions_update_own_unlocked" ON predictions FOR UPDATE USING (user_id = auth.uid() AND is_locked = false);
+CREATE POLICY "predictions_insert_own" ON predictions FOR INSERT WITH CHECK (
+  user_id = auth.uid() AND public.tournament_predictions_window_open()
+);
+CREATE POLICY "predictions_update_own_unlocked" ON predictions FOR UPDATE USING (
+  user_id = auth.uid() AND is_locked = false AND public.tournament_predictions_window_open()
+);
 
 CREATE POLICY "honor_pred_select_own" ON honor_predictions FOR SELECT USING (user_id = auth.uid());
 CREATE POLICY "honor_pred_select_pool_members" ON honor_predictions FOR SELECT USING (
@@ -366,8 +393,12 @@ CREATE POLICY "honor_pred_select_pool_members" ON honor_predictions FOR SELECT U
     SELECT 1 FROM pools p WHERE p.id = honor_predictions.pool_id AND p.admin_id = auth.uid()
   )
 );
-CREATE POLICY "honor_pred_insert_own" ON honor_predictions FOR INSERT WITH CHECK (user_id = auth.uid());
-CREATE POLICY "honor_pred_update_own_open" ON honor_predictions FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "honor_pred_insert_own" ON honor_predictions FOR INSERT WITH CHECK (
+  user_id = auth.uid() AND public.tournament_predictions_window_open()
+);
+CREATE POLICY "honor_pred_update_own_open" ON honor_predictions FOR UPDATE USING (
+  user_id = auth.uid() AND public.tournament_predictions_window_open()
+);
 
 CREATE POLICY "scoring_rules_select_pool" ON scoring_rules FOR SELECT USING (
   public.user_in_pool(scoring_rules.pool_id, auth.uid())

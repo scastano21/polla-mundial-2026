@@ -22,7 +22,11 @@ export default async function AdminHomePage() {
     pools = a.count ?? 0;
     users = b.count ?? 0;
     pending = c.count ?? 0;
-    authUsers = authList.data?.total ?? authList.data?.users?.length ?? 0;
+    const listData = authList.data;
+    authUsers =
+      listData && "total" in listData
+        ? (listData.total ?? listData.users.length)
+        : (listData?.users?.length ?? 0);
   } else {
     const sb = await createServerSupabase();
     const [pc, prof] = await Promise.all([
