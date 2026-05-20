@@ -4,6 +4,7 @@ import { DeletePoolButton } from "@/components/pool/delete-pool-button";
 import { SiteHeader } from "@/components/site-header";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { COPY } from "@/lib/copy";
+import { getSiteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,7 @@ export default async function PoolSettingsPage({ params }: { params: { id: strin
   if (!pool) notFound();
   if (pool.admin_id !== user.id) redirect(`/pool/${pool.id}`);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const inviteUrl = `${appUrl}/pool/join/${pool.invite_code}`;
+  const inviteUrl = `${getSiteUrl()}/pool/join/${pool.invite_code}`;
 
   return (
     <>

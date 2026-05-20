@@ -1,19 +1,18 @@
-import { getSiteUrl } from "@/lib/seo";
+import { getSiteUrl, isLocalhostUrl } from "@/lib/seo";
 
 /**
  * Base URL para enlaces de auth (confirmación, recuperar contraseña).
- * En el navegador, si NEXT_PUBLIC_APP_URL apunta a localhost en producción,
- * usa window.location.origin (dominio real de Vercel).
+ * En el navegador usa el dominio real si el env sigue en localhost.
  */
 export function getAuthRedirectBase(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+
   if (typeof window !== "undefined") {
     const live = window.location.origin;
-    if (!fromEnv || fromEnv.includes("localhost") || fromEnv.includes("127.0.0.1")) {
-      return live;
-    }
+    if (!fromEnv || isLocalhostUrl(fromEnv)) return live;
     return fromEnv;
   }
+
   return getSiteUrl();
 }
 

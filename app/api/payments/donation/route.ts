@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getSiteUrl, isLocalhostUrl } from "@/lib/seo";
 
 export async function POST(request: Request) {
   const token = process.env.MP_ACCESS_TOKEN;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = getSiteUrl();
   if (!token) {
     return NextResponse.json(
       {
@@ -14,11 +15,11 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-  if (!appUrl) {
+  if (isLocalhostUrl(appUrl) && process.env.VERCEL === "1") {
     return NextResponse.json(
       {
-        error: "Falta NEXT_PUBLIC_APP_URL (URL base pública de la app).",
-        hint: "Ej. https://tu-dominio.vercel.app o http://localhost:3000. Mercado Pago usa esto en back_urls y notification_url; los webhooks suelen requerir HTTPS accesible (deploy o ngrok).",
+        error: "NEXT_PUBLIC_APP_URL debe ser tu dominio público en Vercel.",
+        hint: "Ej. https://www.chocogol.site — Mercado Pago y los correos usan esta URL.",
       },
       { status: 500 }
     );
