@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { amount, donorName, message } = await request.json();
+  const { amount, donorName, message, donorEmail } = await request.json();
   const amt = Number(amount);
   if (!amt || amt < 1000) {
     return NextResponse.json({ error: "Monto mínimo: $1.000 COP" }, { status: 400 });
@@ -47,21 +47,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: dErr?.message ?? "No se pudo crear la donación" }, { status: 500 });
   }
 
+  const isTestToken = token.startsWith("TEST-");
   const mp = new MercadoPagoConfig({ accessToken: token });
   const preference = new Preference(mp);
+
+  const email =
+    typeof donorEmail === "string" && donorEmail.includes("@") ? donorEmail.trim() : undefined;
 
   const result = await preference.create({
     body: {
       items: [
         {
           id: `donation-${donation.id}`,
-          title: "Donación Polla Mundialista 2026",
+          title: "Donación Chocogol",
           description: (message as string) || `Donación de ${donorName || "Anónimo"}`,
           quantity: 1,
           currency_id: "COP",
           unit_price: amt,
         },
       ],
+      payer: email ? { email, name: (donorName as string) || undefined } : undefined,
       back_urls: {
         success: `${appUrl}/donate/gracias?id=${donation.id}`,
         failure: `${appUrl}/donate?status=error`,
@@ -69,13 +74,31 @@ export async function POST(request: Request) {
       },
       auto_return: "approved",
       notification_url: `${appUrl}/api/payments/webhook-donation`,
+      external_reference: donation.id,
       metadata: { donation_id: donation.id },
-      statement_descriptor: "POLLA MUNDIAL 2026",
+      statement_descriptor: "CHOCOGOL",
     },
   });
 
+  const initPoint = isTestToken
+    ? (result.sandbox_init_point ?? result.init_point)
+    : (result.init_point ?? result.sandbox_init_point);
+
+  if (!initPoint) {
+    return NextResponse.json(
+      {
+        error: "Mercado Pago no devolvió URL de pago.",
+        hint: isTestToken
+          ? "Revisa que MP_ACCESS_TOKEN sea de prueba y la app esté activa en Developers."
+          : "Usa credenciales de producción (APP_USR-) con cuenta vendedor verificada.",
+      },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json({
     preferenceId: result.id,
-    initPoint: result.init_point,
+    initPoint,
+    testMode: isTestToken,
   });
 }

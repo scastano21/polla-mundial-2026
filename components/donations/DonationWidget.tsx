@@ -9,6 +9,7 @@ export function DonationWidget() {
   const [amount, setAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [donorName, setDonorName] = useState("");
+  const [donorEmail, setDonorEmail] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +25,7 @@ export function DonationWidget() {
         body: JSON.stringify({
           amount: finalAmount,
           donorName: donorName || "Anónimo",
+          donorEmail: donorEmail.trim() || undefined,
           message,
         }),
       });
@@ -35,6 +37,12 @@ export function DonationWidget() {
         return;
       }
       if (data.initPoint) {
+        if (data.testMode) {
+          toast.message("Modo prueba de Mercado Pago", {
+            description:
+              "Usa tarjetas de prueba o cierra sesión de MP. Tus tarjetas reales no funcionan en modo TEST.",
+          });
+        }
         window.location.href = data.initPoint as string;
       }
     } catch {
@@ -78,6 +86,17 @@ export function DonationWidget() {
             setCustomAmount(e.target.value);
             setAmount(null);
           }}
+          className="w-full rounded-xl border border-zinc-600 bg-zinc-800 px-4 py-2.5 text-sm text-white outline-none focus:border-yellow-400"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs text-zinc-400">Correo (recomendado para el pago)</label>
+        <input
+          type="email"
+          placeholder="tu@correo.com"
+          value={donorEmail}
+          onChange={(e) => setDonorEmail(e.target.value)}
           className="w-full rounded-xl border border-zinc-600 bg-zinc-800 px-4 py-2.5 text-sm text-white outline-none focus:border-yellow-400"
         />
       </div>
