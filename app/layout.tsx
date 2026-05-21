@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { NavigationProgress } from "@/components/providers/NavigationProgress";
 import { SiteFooter } from "@/components/site-footer";
 import { getSiteUrl, SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
@@ -73,6 +74,7 @@ export default function RootLayout({
           jetbrains.variable
         )}
       >
+        <GoogleAnalytics />
         <NavigationProgress />
         {children}
         <SiteFooter />
