@@ -52,7 +52,7 @@ export const COPY = {
     no_pools_title: "Aún no tienes ninguna polla activa",
     no_pools_body:
       "El Mundial empieza el 11 de junio. Crea tu grupo hoy y dale tiempo a tus amigos de hacer sus pronósticos.",
-    no_pools_cta: "Crear mi primera polla",
+    no_pools_cta: "Crear Polla",
     no_predictions:
       "¡No has hecho tus pronósticos! Tienes hasta 5 minutos antes del partido inaugural para completar toda la polla.",
   },
