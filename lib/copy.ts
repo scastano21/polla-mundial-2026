@@ -74,9 +74,9 @@ export const COPY = {
     anonymous: "Un hincha anónimo",
     /** Banner inferior (no usar jerga de interfaz aquí). */
     nudge: {
-      before: "¿La polla te prendió? ",
-      linkCta: "Échanos una manito",
-      after: " para el Mundial — lo que te salga, sin afán.",
+      before: "¿Te gusta Chocogol? Échanos una mano para mantenerlo, lo que te nazca. ",
+      linkCta: "Clic aquí para donar",
+      after: "",
     },
   },
   /** Textos de la guía en la página de inicio (#guia). */
