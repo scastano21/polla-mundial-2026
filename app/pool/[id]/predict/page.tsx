@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TournamentLockBanner } from "@/components/tournament-lock-banner";
+import { PredictedProjectionPanel } from "@/components/pool/predicted-projection-panel";
 import { PredictionProgress } from "@/components/pool/prediction-progress";
 import type { TournamentLockState } from "@/lib/tournament-lock";
 
@@ -39,6 +40,10 @@ export default function PoolPredictPage() {
   const [loading, setLoading] = useState(true);
   const [rules, setRules] = useState<PoolScoringRulesRow>(null);
   const [lock, setLock] = useState<TournamentLockState | null>(null);
+  const [projRefresh, setProjRefresh] = useState(0);
+  const [projectedKo, setProjectedKo] = useState<
+    Map<number, { home_team_id: string | null; away_team_id: string | null }>
+  >(new Map());
 
   const load = useCallback(async () => {
     const { data: m } = await supabase.from("matches").select("*").order("match_number");
@@ -84,6 +89,28 @@ export default function PoolPredictPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/pool/${poolId}/projection`, { cache: "no-store" });
+      if (!res.ok || cancelled) return;
+      const body = (await res.json()) as {
+        knockoutPairs?: { match_number: number; home_team_id: string | null; away_team_id: string | null }[];
+      };
+      const map = new Map<number, { home_team_id: string | null; away_team_id: string | null }>();
+      for (const k of body.knockoutPairs ?? []) {
+        map.set(k.match_number, {
+          home_team_id: k.home_team_id,
+          away_team_id: k.away_team_id,
+        });
+      }
+      if (!cancelled) setProjectedKo(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [poolId, projRefresh]);
+
   const globalClosed = lock !== null && !lock.open;
 
   const saveOne = async (match: MatchRow) => {
@@ -120,6 +147,7 @@ export default function PoolPredictPage() {
       return;
     }
     toast.success("Guardado");
+    setProjRefresh((n) => n + 1);
   };
 
   if (loading) {
@@ -147,16 +175,20 @@ export default function PoolPredictPage() {
         <TournamentLockBanner className="mb-4" />
         <PoolScoringBlurb rules={rules} />
         <PredictionProgress poolId={poolId} className="mb-4" />
+        <PredictedProjectionPanel poolId={poolId} refreshKey={projRefresh} />
         <p className="mb-4 text-sm text-zinc-400">
-          Completa y guarda todos los partidos (grupos y eliminatoria) y el cuadro de honor antes del cierre
-          global. Lo que no guardes suma 0 puntos. Tras el cierre, solo el admin puede registrar resultados
-          oficiales. En eliminatoria, los equipos &quot;TBD&quot; se rellenan al avanzar el torneo; puedes pronosticar
-          igual desde ya.
+          Guarda tus marcadores de fase de grupos para ver tu tabla simulada y los cruces de eliminatoria
+          (incluye 8 mejores terceros, reglas FIFA). En la lista, los equipos KO se muestran según tu
+          proyección cuando aún no están definidos oficialmente.
         </p>
         <div className="space-y-3">
           {matches.map((m) => {
-            const ht = m.home_team_id ? teams.get(m.home_team_id) : null;
-            const at = m.away_team_id ? teams.get(m.away_team_id) : null;
+            const proj = projectedKo.get(m.match_number);
+            const homeId = m.home_team_id ?? proj?.home_team_id ?? null;
+            const awayId = m.away_team_id ?? proj?.away_team_id ?? null;
+            const ht = homeId ? teams.get(homeId) : null;
+            const at = awayId ? teams.get(awayId) : null;
+            const fromProjection = m.match_number >= 73 && (!m.home_team_id || !m.away_team_id) && !!proj;
             const cur = preds[m.id] ?? { h: "", a: "", locked: false };
             const disabled = globalClosed || m.status !== "scheduled" || cur.locked;
             return (
@@ -169,6 +201,9 @@ export default function PoolPredictPage() {
                   <span className="font-semibold text-white">
                     {ht?.name ?? "TBD"} vs {at?.name ?? "TBD"}
                   </span>
+                  {fromProjection && (
+                    <span className="ml-2 text-xs text-yellow-600/90">(tu proyección)</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Input

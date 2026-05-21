@@ -40,9 +40,12 @@ export function PoolScoringBlurb({ rules }: { rules: PoolScoringRulesRow }) {
           contiene al otro (evita fallar por un apellido de más o de menos).
         </li>
         <li>
-          <strong className="text-zinc-200">Eliminatoria:</strong> al terminar todos los partidos de grupos, la app asigna equipos en
-          dieciseisavos según la tabla FIFA (495 combinaciones de mejores terceros); luego completa octavos–final con los ganadores de
-          cada cruce.
+          <strong className="text-zinc-200">Eliminatoria (oficial):</strong> cuando el admin cierra grupos, la app asigna dieciseisavos con la
+          matriz FIFA de 8 mejores terceros (495 combinaciones) y avanza octavos–final con resultados reales.
+        </li>
+        <li>
+          <strong className="text-zinc-200">Tu proyección:</strong> en Pronósticos ves tablas y cruces simulados según tus marcadores de
+          grupos (sin cambiar el torneo oficial hasta que se publiquen resultados).
         </li>
       </ul>
     </aside>
