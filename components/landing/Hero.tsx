@@ -1,12 +1,25 @@
+import Image from "next/image";
 import Link from "next/link";
 import { COPY } from "@/lib/copy";
+
+/** Hero desktop 1376×768 — hospedada en electricolor.com.co */
+export const HERO_IMAGE_URL =
+  "https://electricolor.com.co/wp-content/uploads/2026/05/hero.wepb_.webp";
 
 export function Hero() {
   return (
     <section className="relative flex min-h-[70vh] items-center overflow-hidden bg-black">
-      <div className="absolute inset-0 bg-mundial-gradient opacity-20" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+      <Image
+        src={HERO_IMAGE_URL}
+        alt="Polla del Mundial FIFA 2026 — Chocogol"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+      <div className="absolute inset-0 bg-mundial-gradient opacity-15" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/75 to-black/25" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
       <div className="relative z-10 mx-auto w-full max-w-5xl px-6 py-20">
         <div className="mb-6 flex flex-wrap items-center gap-3">
