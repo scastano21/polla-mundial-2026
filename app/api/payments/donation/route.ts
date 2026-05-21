@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { createServiceClient } from "@/lib/supabase/service";
+import { MIN_DONATION_COP } from "@/lib/donation";
 import { getSiteUrl, isLocalhostUrl } from "@/lib/seo";
 
 export async function POST(request: Request) {
@@ -27,8 +28,11 @@ export async function POST(request: Request) {
 
   const { amount, donorName, message, donorEmail } = await request.json();
   const amt = Number(amount);
-  if (!amt || amt < 1000) {
-    return NextResponse.json({ error: "Monto mínimo: $1.000 COP" }, { status: 400 });
+  if (!amt || amt < MIN_DONATION_COP) {
+    return NextResponse.json(
+      { error: `Monto mínimo: $${MIN_DONATION_COP.toLocaleString("es-CO")} COP` },
+      { status: 400 }
+    );
   }
 
   const supabase = createServiceClient();

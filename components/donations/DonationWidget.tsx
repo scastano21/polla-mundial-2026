@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { MIN_DONATION_COP } from "@/lib/donation";
 import { toast } from "sonner";
 
-const PRESET_AMOUNTS = [10000, 20000, 30000, 50000];
+const PRESET_AMOUNTS = [10_000, 20_000, 30_000, 50_000];
 
 export function DonationWidget() {
   const [amount, setAmount] = useState<number | null>(null);
@@ -14,7 +15,8 @@ export function DonationWidget() {
   const [loading, setLoading] = useState(false);
 
   const finalAmount = amount ?? (customAmount ? parseInt(customAmount, 10) : null);
-  const canDonate = finalAmount != null && finalAmount >= 1000 && !Number.isNaN(finalAmount);
+  const canDonate =
+    finalAmount != null && finalAmount >= MIN_DONATION_COP && !Number.isNaN(finalAmount);
 
   const handleDonate = async () => {
     if (!canDonate || loading) return;
@@ -102,9 +104,9 @@ export function DonationWidget() {
           <label className="mb-1 block text-xs text-zinc-400">Otro valor (COP)</label>
           <input
             type="number"
-            min={1000}
+            min={MIN_DONATION_COP}
             step={1000}
-            placeholder="Ej: 25000"
+            placeholder="Mínimo $10.000"
             value={customAmount}
             onChange={(e) => {
               setCustomAmount(e.target.value);
@@ -148,6 +150,7 @@ export function DonationWidget() {
           type="button"
           onClick={handleDonate}
           disabled={loading || !canDonate}
+        title={!canDonate ? `Monto mínimo $${MIN_DONATION_COP.toLocaleString("es-CO")} COP` : undefined}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-500 py-3 text-base font-bold text-black transition-all hover:bg-yellow-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? (
@@ -162,7 +165,8 @@ export function DonationWidget() {
       </fieldset>
 
       <p className="text-center text-xs text-zinc-500">
-        Pago seguro vía MercadoPago · PSE · Nequi · Daviplata · Tarjetas
+        Mínimo ${MIN_DONATION_COP.toLocaleString("es-CO")} COP · Mercado Pago · PSE · Nequi · Daviplata ·
+        Tarjetas
       </p>
     </div>
   );
