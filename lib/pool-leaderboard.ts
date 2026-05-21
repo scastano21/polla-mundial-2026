@@ -23,6 +23,15 @@ type MemberWithProfile = {
     | null;
 };
 
+function compareLeaderboard(a: PoolLeaderboardRow, b: PoolLeaderboardRow): number {
+  if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+  return b.exact_scores - a.exact_scores;
+}
+
+function sortLeaderboardRows(rows: PoolLeaderboardRow[]): PoolLeaderboardRow[] {
+  return [...rows].sort(compareLeaderboard);
+}
+
 function mapRows(members: MemberWithProfile[]): PoolLeaderboardRow[] {
   return members.map((m) => {
     const prof = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
@@ -55,17 +64,19 @@ export async function loadLeaderboardFromDb(
     `
     )
     .eq("pool_id", poolId)
-    .order("total_points", { ascending: false });
+    .order("total_points", { ascending: false })
+    .order("exact_scores", { ascending: false });
 
   if (!embedErr && embedded?.length) {
-    return mapRows(embedded as MemberWithProfile[]);
+    return sortLeaderboardRows(mapRows(embedded as MemberWithProfile[]));
   }
 
   const { data: members, error: mErr } = await client
     .from("pool_members")
     .select("user_id, total_points, exact_scores, correct_results, rank")
     .eq("pool_id", poolId)
-    .order("total_points", { ascending: false });
+    .order("total_points", { ascending: false })
+    .order("exact_scores", { ascending: false });
 
   if (mErr || !members?.length) {
     if (embedErr) console.warn("[pool-leaderboard] embed:", embedErr.message);
@@ -81,18 +92,20 @@ export async function loadLeaderboardFromDb(
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-  return members.map((m) => {
-    const p = profileMap.get(m.user_id);
-    return {
-      user_id: m.user_id,
-      username: p?.username ?? "jugador",
-      display_name: p?.display_name ?? null,
-      total_points: m.total_points ?? 0,
-      exact_scores: m.exact_scores ?? 0,
-      correct_results: m.correct_results ?? 0,
-      rank: m.rank,
-    };
-  });
+  return sortLeaderboardRows(
+    members.map((m) => {
+      const p = profileMap.get(m.user_id);
+      return {
+        user_id: m.user_id,
+        username: p?.username ?? "jugador",
+        display_name: p?.display_name ?? null,
+        total_points: m.total_points ?? 0,
+        exact_scores: m.exact_scores ?? 0,
+        correct_results: m.correct_results ?? 0,
+        rank: m.rank,
+      };
+    })
+  );
 }
 
 /**
@@ -125,7 +138,7 @@ export async function fetchPoolLeaderboard(
   });
 
   if (!rpcErr && Array.isArray(viaRpc) && viaRpc.length > 0) {
-    return viaRpc as PoolLeaderboardRow[];
+    return sortLeaderboardRows(viaRpc as PoolLeaderboardRow[]);
   }
 
   if (rpcErr) {

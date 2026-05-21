@@ -26,8 +26,12 @@ export function PoolScoringBlurb({ rules }: { rules: PoolScoringRulesRow }) {
       <p className="mb-2 font-bold text-white">Cómo suman los puntos</p>
       <ul className="list-inside list-disc space-y-1 text-zinc-400">
         <li>
+          <strong className="text-zinc-200">Tabla:</strong> gana quien sume más puntos; si empatan, sube quien tenga más{" "}
+          <strong className="text-yellow-500">marcadores exactos</strong>.
+        </li>
+        <li>
           <strong className="text-zinc-200">Por partido:</strong> marcador exacto <strong className="text-yellow-500">{e} pts</strong>;
-          aciertas solo 1-X-2 <strong className="text-yellow-500">{r} pts</strong> (sin repetir el bonus de exacto).
+          solo 1-X-2 <strong className="text-yellow-500">{r} pts</strong> (sin doble bonus).
         </li>
         <li>
           <strong className="text-zinc-200">Cuadro de honor</strong> (una sola vez, antes del Mundial): cuando el admin cierre los

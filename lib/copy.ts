@@ -74,11 +74,9 @@ export const COPY = {
     anonymous: "Un hincha anónimo",
     /** Banner inferior (no usar jerga de interfaz aquí). */
     nudge: {
-      before:
-        "Gritar gol con ellos vale oro — y mantener esta polla en línea también. Si tú también quieres echarnos la mano,",
-      linkCta: "deja un aporte desde el corazón",
-      after:
-        "; lo que te salga, sin apuro. ¡Gracias por jugar estas semanas acá!",
+      before: "¿La polla te prendió? ",
+      linkCta: "Échanos una manito",
+      after: " para el Mundial — lo que te salga, sin afán.",
     },
   },
   /** Textos de la guía en la página de inicio (#guia). */
@@ -88,9 +86,9 @@ export const COPY = {
       "Te resumimos lo importante: crear o entrar en una polla con amigos y familia, ver la tabla, cargar tus pronósticos, el cuadro de honor de una sola vez y la vista de transparencia para que nadie dude de lo que marcó antes del pitazo.",
     donateCardTitle: "¿Nos echas una mano?",
     donateCardBody:
-      "El Mundial cambia años: estar acá cuesta tiempo y trabajo de quien lo mantiene encendido cada partido para tu grupo. Si esto te trajo risas, peleitas sanas por la tabla o esa sensación de torneo bien vivido entre los tuyos, cualquier aporte cuenta de verdad — no hay presión; si puedes y te nace del corazón, aquí cerramos ese círculo de hinchas que ayuda a llegar igual de prendidos hasta el último minuto.",
+      "Mantener la polla prendida todo el Mundial cuesta tiempo y servidor. Si te ha dado risa, polémica sana o bravazo con los parceros, un aportico en COP nos ayuda un montón — sin presión, solo si te nace.",
     donateCardFootnote:
-      "Pagos rápidos con MercadoPago en COP, sin vueltas y con la tranquilidad que ya conoces.",
+      "PSE, Nequi, Daviplata o tarjeta por Mercado Pago. Rápido y sin enredos.",
     sections: [
       {
         title: "Pollas, grupos e invitación",

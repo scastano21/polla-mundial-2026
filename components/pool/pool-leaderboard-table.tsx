@@ -106,6 +106,9 @@ export function PoolLeaderboardTable({
           })}
         </tbody>
       </table>
+      <p className="border-t border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-500">
+        Desempate: más puntos totales, luego más marcadores exactos.
+      </p>
     </div>
   );
 }

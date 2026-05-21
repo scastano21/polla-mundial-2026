@@ -211,7 +211,7 @@ BEGIN
   WITH ranked AS (
     SELECT id,
            ROW_NUMBER() OVER (
-             ORDER BY total_points DESC, exact_scores DESC, correct_results DESC, joined_at ASC
+             ORDER BY total_points DESC, exact_scores DESC, user_id ASC
            ) AS new_rank
     FROM pool_members WHERE pool_id = p_pool_id
   )

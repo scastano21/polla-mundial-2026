@@ -84,7 +84,7 @@ AS $$
         WHERE p.id = p_pool_id AND p.admin_id = auth.uid()
       )
     )
-  ORDER BY pm.total_points DESC, pm.exact_scores DESC, pm.correct_results DESC, pm.joined_at ASC;
+  ORDER BY pm.total_points DESC, pm.exact_scores DESC, pm.user_id ASC;
 $$;
 
 REVOKE ALL ON FUNCTION public.list_pool_members(uuid) FROM PUBLIC;
