@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chocogol — Polla Mundialista FIFA 2026
 
-## Getting Started
+Aplicación web para crear pollas privadas del Mundial 2026: pronósticos, tabla de puntos, cuadro de honor y calendario oficial.
 
-First, run the development server:
+- **Producción:** https://www.chocogol.site
+- **Stack:** Next.js 14 · Supabase · Vercel · Mercado Pago
+
+## Documentación
+
+Toda la documentación técnica (arquitectura, base de datos, APIs, despliegue) está en **[docs/](./docs/)**:
+
+- [Documentación técnica completa](./docs/DOCUMENTACION-TECNICA.md)
+- [Dominio y correos](./docs/DOMINIO-Y-EMAILS.md)
+- [Mercado Pago](./docs/MERCADOPAGO.md)
+
+## Desarrollo local
 
 ```bash
+cp .env.example .env.local
+# Completar variables Supabase (ver .env.example)
+npm install
+npm run seed    # opcional: equipos y 104 partidos
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts útiles
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Comando | Descripción |
+|---------|-------------|
+| `npm run build` | Build producción (copia banderas + Next) |
+| `npm run seed` | Carga inicial en Supabase |
+| `npm run set-admin -- email@ejemplo.com` | Admin del torneo |
 
-## Learn More
+## Licencia
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Proyecto privado — uso del repositorio según acuerdo del mantenedor.
