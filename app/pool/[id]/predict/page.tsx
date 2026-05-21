@@ -204,6 +204,7 @@ export default function PoolPredictPage() {
                     type="button"
                     size="sm"
                     disabled={disabled}
+                    data-skip-nav-progress
                     className="bg-yellow-500 text-black hover:bg-yellow-400"
                     onClick={() => saveOne(m)}
                   >

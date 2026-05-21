@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/use-app-router";
 import { useState } from "react";
 import { deletePoolAsAdmin } from "@/app/pool/delete-pool-action";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function DeletePoolButton({ poolId, poolName, className, layout = "compact" }: Props) {
-  const router = useRouter();
+  const router = useAppRouter();
   const [busy, setBusy] = useState(false);
 
   const run = async () => {

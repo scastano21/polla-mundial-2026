@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/use-app-router";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { isAdminFromUserMetadata } from "@/lib/tournament-admin";
@@ -11,7 +11,7 @@ import { DonateNudge } from "@/components/donate-nudge";
 import { toast } from "sonner";
 
 export function SiteHeader() {
-  const router = useRouter();
+  const router = useAppRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [ready, setReady] = useState(false);

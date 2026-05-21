@@ -155,7 +155,12 @@ export default function AdminHonorPage() {
           </div>
           <Switch checked={isFinal} onCheckedChange={setIsFinal} />
         </div>
-        <Button type="button" onClick={save} className="w-full bg-yellow-500 font-bold text-black">
+        <Button
+          type="button"
+          data-skip-nav-progress
+          onClick={save}
+          className="w-full bg-yellow-500 font-bold text-black"
+        >
           Guardar
         </Button>
       </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/use-app-router";
 import { createClient } from "@/lib/supabase/client";
 import { authRedirectTo } from "@/lib/auth-url";
 import { SiteHeader } from "@/components/site-header";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const router = useAppRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");

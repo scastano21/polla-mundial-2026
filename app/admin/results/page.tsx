@@ -103,6 +103,7 @@ function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
       </p>
       <Button
         type="button"
+        data-skip-nav-progress
         variant="outline"
         disabled={busy}
         onClick={sync}
@@ -267,6 +268,7 @@ function ResultRow({
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
+          data-skip-nav-progress
           disabled={saving || homeScore === "" || awayScore === ""}
           onClick={handleSave}
           className="bg-yellow-500 font-bold text-black hover:bg-yellow-400"
@@ -276,6 +278,7 @@ function ResultRow({
         {match.status === "finished" && (
           <Button
             type="button"
+            data-skip-nav-progress
             variant="outline"
             disabled={resetting || saving}
             onClick={handleReset}

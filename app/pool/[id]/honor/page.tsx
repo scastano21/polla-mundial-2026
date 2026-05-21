@@ -224,6 +224,7 @@ export default function PoolHonorPage() {
           {!readOnly && (
             <Button
               type="button"
+              data-skip-nav-progress
               onClick={save}
               disabled={saving}
               className="w-full bg-yellow-500 text-black hover:bg-yellow-400"

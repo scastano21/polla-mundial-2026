@@ -60,7 +60,10 @@ export function DonationWidget() {
   };
 
   return (
-    <div className="relative space-y-5 rounded-2xl border border-zinc-700 bg-zinc-900 p-6">
+    <div
+      className="relative space-y-5 rounded-2xl border border-zinc-700 bg-zinc-900 p-6"
+      data-skip-nav-progress
+    >
       {loading && (
         <div
           className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-zinc-950/85 backdrop-blur-[2px]"

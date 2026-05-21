@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/use-app-router";
 import { createClient } from "@/lib/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function UpdatePasswordPage() {
-  const router = useRouter();
+  const router = useAppRouter();
   const supabase = useMemo(() => createClient(), []);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

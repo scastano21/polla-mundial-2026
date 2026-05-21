@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/use-app-router";
 
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function JoinPoolLandingPage() {
-  const router = useRouter();
+  const router = useAppRouter();
   const [code, setCode] = useState("");
 
   const go = (e: React.FormEvent) => {

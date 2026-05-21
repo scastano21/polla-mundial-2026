@@ -4,12 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+#nprogress {
+  pointer-events: none;
+}
 #nprogress .bar {
   background: #eab308 !important;
   height: 3px !important;
+  z-index: 9999 !important;
 }
 #nprogress .peg {
   box-shadow: 0 0 10px #eab308, 0 0 5px #eab308 !important;
+}
+#nprogress .spinner {
+  top: 12px !important;
+  right: 14px !important;
+  z-index: 9999 !important;
+}
+#nprogress .spinner-icon {
+  width: 20px !important;
+  height: 20px !important;
+  border-top-color: #eab308 !important;
+  border-left-color: #eab308 !important;
 }
 
 @keyframes points-pop {
