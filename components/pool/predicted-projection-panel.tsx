@@ -188,8 +188,8 @@ export function PredictedProjectionPanel({
               </>
             )}
             <p className="mt-2 text-xs text-zinc-500">
-              En eliminatoria, empate en tu pronóstico no avanza el cruce (sin penales). Pon un
-              ganador en el marcador.
+              Si pronosticas empate en eliminatoria, indica quién pasa en ese partido para completar
+              tu cuadro.
             </p>
           </div>
         )}

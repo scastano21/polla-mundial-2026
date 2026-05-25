@@ -180,21 +180,31 @@ function resolveRoundOf32(
   };
 }
 
-function winnerFromScores(
+export type KnockoutPredictionScores = {
+  home: number;
+  away: number;
+  advanceTeamId?: string | null;
+};
+
+function winnerFromPrediction(
   homeId: string | null,
   awayId: string | null,
-  homeScore: number,
-  awayScore: number
+  pred: KnockoutPredictionScores
 ): string | null {
   if (!homeId || !awayId) return null;
-  if (homeScore > awayScore) return homeId;
-  if (awayScore > homeScore) return awayId;
+  if (pred.home > pred.away) return homeId;
+  if (pred.away > pred.home) return awayId;
+  if (pred.home === pred.away && pred.advanceTeamId) {
+    if (pred.advanceTeamId === homeId || pred.advanceTeamId === awayId) {
+      return pred.advanceTeamId;
+    }
+  }
   return null;
 }
 
 function propagateKnockout(
   initial: Map<number, KnockoutPair>,
-  predictionsByMn: Map<number, { home: number; away: number }>
+  predictionsByMn: Map<number, KnockoutPredictionScores>
 ): Map<number, KnockoutPair> {
   const byMn = new Map(initial);
 
@@ -222,8 +232,8 @@ function propagateKnockout(
         const predA = predictionsByMn.get(a);
         const predB = predictionsByMn.get(b);
         if (!predA || !predB) continue;
-        const wa = winnerFromScores(ma.home_team_id, ma.away_team_id, predA.home, predA.away);
-        const wb = winnerFromScores(mb.home_team_id, mb.away_team_id, predB.home, predB.away);
+        const wa = winnerFromPrediction(ma.home_team_id, ma.away_team_id, predA);
+        const wb = winnerFromPrediction(mb.home_team_id, mb.away_team_id, predB);
         if (!wa || !wb) continue;
         const before = getPair(Number(mn));
         trySet(Number(mn), wa, wb);
@@ -243,8 +253,8 @@ function propagateKnockout(
     const p101 = predictionsByMn.get(101);
     const p102 = predictionsByMn.get(102);
     if (p101 && p102) {
-      const w101 = winnerFromScores(m101.home_team_id, m101.away_team_id, p101.home, p101.away);
-      const w102 = winnerFromScores(m102.home_team_id, m102.away_team_id, p102.home, p102.away);
+      const w101 = winnerFromPrediction(m101.home_team_id, m101.away_team_id, p101);
+      const w102 = winnerFromPrediction(m102.home_team_id, m102.away_team_id, p102);
       const l101 =
         w101 && m101.home_team_id && m101.away_team_id
           ? w101 === m101.home_team_id
@@ -277,7 +287,7 @@ function propagateKnockout(
 
 export function buildPredictionProjection(
   allMatches: MatchDb[],
-  predictions: Map<string, { home: number; away: number }>
+  predictions: Map<string, KnockoutPredictionScores>
 ): ProjectionResult {
   const groupMatches = allMatches.filter((m) => m.group_letter);
   const koMatches = allMatches.filter((m) => m.match_number >= 73 && m.match_number <= 104);
@@ -317,10 +327,16 @@ export function buildPredictionProjection(
     koMap.set(p.match_number, { ...p });
   }
 
-  const predictionsByMn = new Map<number, { home: number; away: number }>();
+  const predictionsByMn = new Map<number, KnockoutPredictionScores>();
   for (const m of koMatches) {
     const pred = predictions.get(m.id);
-    if (pred) predictionsByMn.set(m.match_number, pred);
+    if (pred) {
+      predictionsByMn.set(m.match_number, {
+        home: pred.home,
+        away: pred.away,
+        advanceTeamId: pred.advanceTeamId ?? null,
+      });
+    }
   }
 
   const propagated =

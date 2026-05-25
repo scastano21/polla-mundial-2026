@@ -36,15 +36,21 @@ export async function GET(
 
   const { data: preds } = await supabase
     .from("predictions")
-    .select("match_id, predicted_home_score, predicted_away_score")
+    .select(
+      "match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id"
+    )
     .eq("pool_id", poolId)
     .eq("user_id", user.id);
 
-  const predMap = new Map<string, { home: number; away: number }>();
+  const predMap = new Map<
+    string,
+    { home: number; away: number; advanceTeamId: string | null }
+  >();
   for (const p of preds ?? []) {
     predMap.set(p.match_id, {
       home: p.predicted_home_score,
       away: p.predicted_away_score,
+      advanceTeamId: p.predicted_advance_team_id ?? null,
     });
   }
 

@@ -36,7 +36,9 @@ export default function PoolPredictPage() {
 
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [teams, setTeams] = useState<Map<string, Team>>(new Map());
-  const [preds, setPreds] = useState<Record<string, { h: string; a: string; locked: boolean }>>({});
+  const [preds, setPreds] = useState<
+    Record<string, { h: string; a: string; locked: boolean; advanceTeamId: string | null }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [rules, setRules] = useState<PoolScoringRulesRow>(null);
   const [lock, setLock] = useState<TournamentLockState | null>(null);
@@ -68,15 +70,21 @@ export default function PoolPredictPage() {
     if (!user) return;
     const { data: pr } = await supabase
       .from("predictions")
-      .select("match_id, predicted_home_score, predicted_away_score, is_locked")
+      .select(
+        "match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id, is_locked"
+      )
       .eq("pool_id", poolId)
       .eq("user_id", user.id);
-    const map: Record<string, { h: string; a: string; locked: boolean }> = {};
+    const map: Record<
+      string,
+      { h: string; a: string; locked: boolean; advanceTeamId: string | null }
+    > = {};
     for (const p of pr ?? []) {
       map[p.match_id] = {
         h: String(p.predicted_home_score),
         a: String(p.predicted_away_score),
         locked: p.is_locked,
+        advanceTeamId: p.predicted_advance_team_id ?? null,
       };
     }
     setPreds(map);
@@ -125,6 +133,28 @@ export default function PoolPredictPage() {
       toast.error("Marcador inválido");
       return;
     }
+    const isKnockout = match.match_number >= 73;
+    const isTie = h === a;
+    const proj = projectedKo.get(match.match_number);
+    const homeId = match.home_team_id ?? proj?.home_team_id ?? null;
+    const awayId = match.away_team_id ?? proj?.away_team_id ?? null;
+    let advanceTeamId: string | null = null;
+    if (isKnockout && isTie) {
+      advanceTeamId = cur.advanceTeamId;
+      if (!advanceTeamId) {
+        toast.error("En eliminatoria con empate, elige quién pasa a la siguiente ronda.");
+        return;
+      }
+      if (
+        homeId &&
+        awayId &&
+        advanceTeamId !== homeId &&
+        advanceTeamId !== awayId
+      ) {
+        toast.error("El equipo que pasa debe ser local o visitante de este partido.");
+        return;
+      }
+    }
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -138,6 +168,7 @@ export default function PoolPredictPage() {
         predicted_home_score: h,
         predicted_away_score: a,
         predicted_result,
+        predicted_advance_team_id: isKnockout && isTie ? advanceTeamId : null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,pool_id,match_id" }
@@ -178,8 +209,9 @@ export default function PoolPredictPage() {
         <PredictedProjectionPanel poolId={poolId} refreshKey={projRefresh} />
         <p className="mb-4 text-sm text-zinc-400">
           Guarda tus marcadores de fase de grupos para ver tu tabla simulada y los cruces de eliminatoria
-          (incluye 8 mejores terceros, reglas FIFA). En la lista, los equipos KO se muestran según tu
-          proyección cuando aún no están definidos oficialmente.
+          (incluye 8 mejores terceros, reglas FIFA). En eliminatoria, si pronosticas empate, debes indicar
+          quién pasa para completar tu cuadro. Los equipos KO se muestran según tu proyección cuando aún
+          no están definidos oficialmente.
         </p>
         <div className="space-y-3">
           {matches.map((m) => {
@@ -189,12 +221,21 @@ export default function PoolPredictPage() {
             const ht = homeId ? teams.get(homeId) : null;
             const at = awayId ? teams.get(awayId) : null;
             const fromProjection = m.match_number >= 73 && (!m.home_team_id || !m.away_team_id) && !!proj;
-            const cur = preds[m.id] ?? { h: "", a: "", locked: false };
+            const cur = preds[m.id] ?? { h: "", a: "", locked: false, advanceTeamId: null };
             const disabled = globalClosed || m.status !== "scheduled" || cur.locked;
+            const hNum = cur.h === "" ? NaN : parseInt(cur.h, 10);
+            const aNum = cur.a === "" ? NaN : parseInt(cur.a, 10);
+            const showAdvancePicker =
+              m.match_number >= 73 &&
+              !Number.isNaN(hNum) &&
+              !Number.isNaN(aNum) &&
+              hNum === aNum &&
+              homeId &&
+              awayId;
             return (
               <div
                 key={m.id}
-                className="flex flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:flex-row sm:items-center"
+                className="flex flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:flex-row sm:items-center sm:flex-wrap"
               >
                 <div className="min-w-0 flex-1 text-sm">
                   <span className="text-zinc-500">#{m.match_number}</span>{" "}
@@ -213,12 +254,21 @@ export default function PoolPredictPage() {
                     className="w-14 bg-zinc-950 text-center"
                     disabled={disabled}
                     value={cur.h}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const nextH = e.target.value;
+                      const nh = nextH === "" ? NaN : parseInt(nextH, 10);
+                      const na = cur.a === "" ? NaN : parseInt(cur.a, 10);
+                      const clearAdvance =
+                        !Number.isNaN(nh) && !Number.isNaN(na) && nh !== na;
                       setPreds((p) => ({
                         ...p,
-                        [m.id]: { ...cur, h: e.target.value },
-                      }))
-                    }
+                        [m.id]: {
+                          ...cur,
+                          h: nextH,
+                          advanceTeamId: clearAdvance ? null : cur.advanceTeamId,
+                        },
+                      }));
+                    }}
                   />
                   <span className="text-zinc-500">–</span>
                   <Input
@@ -228,12 +278,21 @@ export default function PoolPredictPage() {
                     className="w-14 bg-zinc-950 text-center"
                     disabled={disabled}
                     value={cur.a}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const nextA = e.target.value;
+                      const na = nextA === "" ? NaN : parseInt(nextA, 10);
+                      const nh = cur.h === "" ? NaN : parseInt(cur.h, 10);
+                      const clearAdvance =
+                        !Number.isNaN(nh) && !Number.isNaN(na) && nh !== na;
                       setPreds((p) => ({
                         ...p,
-                        [m.id]: { ...cur, a: e.target.value },
-                      }))
-                    }
+                        [m.id]: {
+                          ...cur,
+                          a: nextA,
+                          advanceTeamId: clearAdvance ? null : cur.advanceTeamId,
+                        },
+                      }));
+                    }}
                   />
                   <Button
                     type="button"
@@ -246,6 +305,53 @@ export default function PoolPredictPage() {
                     Guardar
                   </Button>
                 </div>
+                {showAdvancePicker && (
+                  <div className="w-full basis-full border-t border-zinc-800 pt-3">
+                    <p className="mb-2 text-xs font-medium text-yellow-600/90">
+                      Empate en eliminatoria — ¿quién pasa en tu pronóstico?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={cur.advanceTeamId === homeId ? "default" : "outline"}
+                        disabled={disabled}
+                        className={
+                          cur.advanceTeamId === homeId
+                            ? "bg-yellow-500 text-black hover:bg-yellow-400"
+                            : "border-zinc-600"
+                        }
+                        onClick={() =>
+                          setPreds((p) => ({
+                            ...p,
+                            [m.id]: { ...cur, advanceTeamId: homeId },
+                          }))
+                        }
+                      >
+                        Pasa: {ht?.name ?? "Local"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={cur.advanceTeamId === awayId ? "default" : "outline"}
+                        disabled={disabled}
+                        className={
+                          cur.advanceTeamId === awayId
+                            ? "bg-yellow-500 text-black hover:bg-yellow-400"
+                            : "border-zinc-600"
+                        }
+                        onClick={() =>
+                          setPreds((p) => ({
+                            ...p,
+                            [m.id]: { ...cur, advanceTeamId: awayId },
+                          }))
+                        }
+                      >
+                        Pasa: {at?.name ?? "Visitante"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

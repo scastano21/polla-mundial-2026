@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS predictions (
   predicted_home_score  INT NOT NULL,
   predicted_away_score  INT NOT NULL,
   predicted_result      TEXT NOT NULL,
+  predicted_advance_team_id UUID REFERENCES teams(id),
   points_earned         INT DEFAULT 0,
   is_locked             BOOLEAN DEFAULT FALSE,
   created_at            TIMESTAMPTZ DEFAULT NOW(),
