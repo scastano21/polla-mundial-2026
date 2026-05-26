@@ -1,6 +1,7 @@
 export type PoolScoringRulesRow = {
   exact_score_points: number | null;
   correct_result_points: number | null;
+  advancement_team_points?: number | null;
   correct_champion: number | null;
   correct_runner_up: number | null;
   correct_third_place: number | null;
@@ -13,6 +14,7 @@ export type PoolScoringRulesRow = {
 export function PoolScoringBlurb({ rules }: { rules: PoolScoringRulesRow }) {
   const e = rules?.exact_score_points ?? 5;
   const r = rules?.correct_result_points ?? 2;
+  const adv = rules?.advancement_team_points ?? 3;
   const ch = rules?.correct_champion ?? 10;
   const ru = rules?.correct_runner_up ?? 5;
   const tp = rules?.correct_third_place ?? 3;
@@ -32,6 +34,12 @@ export function PoolScoringBlurb({ rules }: { rules: PoolScoringRulesRow }) {
         <li>
           <strong className="text-zinc-200">Por partido:</strong> marcador exacto <strong className="text-yellow-500">{e} pts</strong>;
           solo 1-X-2 <strong className="text-yellow-500">{r} pts</strong> (sin doble bonus).
+        </li>
+        <li>
+          <strong className="text-zinc-200">Por clasificados (eliminatoria):</strong>{" "}
+          <strong className="text-yellow-500">{adv} pts</strong> por cada equipo que tengas en una ronda KO (dieciseisavos,
+          octavos, cuartos, semifinal o final) y que oficialmente llegue a esa misma ronda — aunque falles el marcador del
+          partido.
         </li>
         <li>
           <strong className="text-zinc-200">Cuadro de honor</strong> (una sola vez, antes del Mundial): cuando el admin cierre los

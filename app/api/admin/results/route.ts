@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { rebuildGroupStandings } from "@/lib/rebuild-standings";
 import { recalculatePointsForMatch } from "@/lib/recalculate-match-points";
 import { tryAdvanceWorldCupBracket } from "@/lib/bracket/wc2026-knockout";
+import { recalculateAdvancementPoints } from "@/lib/recalculate-advancement-points";
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
@@ -98,6 +99,12 @@ export async function POST(request: Request) {
   );
 
   const bracket = await tryAdvanceWorldCupBracket(supabase);
+
+  try {
+    await recalculateAdvancementPoints(supabase);
+  } catch (e) {
+    console.error("recalculateAdvancementPoints", e);
+  }
 
   return NextResponse.json({
     success: true,

@@ -45,7 +45,7 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
   const { data: rulesRow } = await supabase
     .from("scoring_rules")
     .select(
-      "exact_score_points, correct_result_points, correct_champion, correct_runner_up, correct_third_place, correct_top_scorer, correct_best_player, correct_best_goalkeeper, correct_best_young"
+      "exact_score_points, correct_result_points, advancement_team_points, correct_champion, correct_runner_up, correct_third_place, correct_top_scorer, correct_best_player, correct_best_goalkeeper, correct_best_young"
     )
     .eq("pool_id", pool.id)
     .maybeSingle();
