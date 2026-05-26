@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { GoogleAdSense } from "@/components/analytics/google-adsense";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { NavigationProgress } from "@/components/providers/NavigationProgress";
 import { SiteFooter } from "@/components/site-footer";
@@ -67,6 +68,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <GoogleAdSense />
+      </head>
       <body
         className={cn(
           "min-h-screen bg-zinc-950 text-zinc-50 antialiased",
