@@ -92,7 +92,6 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
           </div>
         </div>
 
-        <PoolScoringBlurb rules={rulesRow} />
         <TournamentLockBanner className="mb-4" />
         {lockState.open && <PredictionProgress poolId={pool.id} className="mb-4" />}
 
@@ -102,6 +101,8 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
           initialRows={leaderboard}
           memberCountHint={memberCountDb}
         />
+
+        <PoolScoringBlurb rules={rulesRow} className="mt-6" />
 
         <p className="mt-8 text-center text-sm text-zinc-600">
           <Link href="/dashboard" className="text-yellow-500 hover:underline">

@@ -205,9 +205,9 @@ export default function PoolPredictPage() {
           </Link>
         </div>
         <TournamentLockBanner className="mb-4" />
-        <PoolScoringBlurb rules={rules} />
         <PredictionProgress poolId={poolId} className="mb-4" />
         <PredictedProjectionPanel poolId={poolId} refreshKey={projRefresh} />
+        <PoolScoringBlurb rules={rules} className="mt-4 mb-4" />
         <p className="mb-4 text-sm text-zinc-400">
           Guarda tus marcadores de fase de grupos para ver tu tabla simulada y los cruces de eliminatoria
           (incluye 8 mejores terceros, reglas FIFA). En eliminatoria, si pronosticas empate, debes indicar

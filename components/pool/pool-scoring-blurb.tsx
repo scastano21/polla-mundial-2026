@@ -11,7 +11,15 @@ export type PoolScoringRulesRow = {
   correct_best_young: number | null;
 } | null;
 
-export function PoolScoringBlurb({ rules }: { rules: PoolScoringRulesRow }) {
+import { cn } from "@/lib/utils";
+
+export function PoolScoringBlurb({
+  rules,
+  className,
+}: {
+  rules: PoolScoringRulesRow;
+  className?: string;
+}) {
   const e = rules?.exact_score_points ?? 5;
   const r = rules?.correct_result_points ?? 2;
   const adv = rules?.advancement_team_points ?? 3;
@@ -24,7 +32,12 @@ export function PoolScoringBlurb({ rules }: { rules: PoolScoringRulesRow }) {
   const by = rules?.correct_best_young ?? 2;
 
   return (
-    <aside className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 text-sm text-zinc-300">
+    <aside
+      className={cn(
+        "rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 text-sm text-zinc-300",
+        className
+      )}
+    >
       <p className="mb-2 font-bold text-white">Cómo suman los puntos</p>
       <ul className="list-inside list-disc space-y-1 text-zinc-400">
         <li>
