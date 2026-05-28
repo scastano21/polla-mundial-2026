@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { MatchCard, type MatchCardMatch } from "@/components/tournament/MatchCard";
 import { GroupStandingsTable } from "@/components/tournament/GroupStandingsTable";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 const GROUPS = "ABCDEFGHIJKL".split("");
 
@@ -107,6 +108,8 @@ export default async function FixturePage({
             <GroupStandingsTable groupLetter={group} />
           </div>
         )}
+
+        <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_FIXTURE?.trim() || ""} className="mb-6" />
 
         <div className="grid gap-3">
           {matches.map((m) => (

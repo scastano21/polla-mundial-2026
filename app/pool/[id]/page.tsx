@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { TournamentLockBanner } from "@/components/tournament-lock-banner";
 import { PredictionProgress } from "@/components/pool/prediction-progress";
 import { fetchTournamentLockState } from "@/lib/tournament-lock";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,8 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
           initialRows={leaderboard}
           memberCountHint={memberCountDb}
         />
+
+        <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_POOL?.trim() || ""} className="mt-6" />
 
         <PoolScoringBlurb rules={rulesRow} className="mt-6" />
 
