@@ -7,17 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { COPY } from "@/lib/copy";
 import { TournamentLockBanner } from "@/components/tournament-lock-banner";
+import { TeamSelect } from "@/components/pool/team-select";
 import type { TournamentLockState } from "@/lib/tournament-lock";
 
 type Team = { id: string; name: string };
@@ -129,60 +123,30 @@ export default function PoolHonorPage() {
         <div className="mt-8 space-y-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
           <div>
             <Label>{COPY.honor.sections.champion}</Label>
-            <Select
-              value={champion || undefined}
-              onValueChange={(v) => setChampion(v ?? "")}
+            <TeamSelect
+              value={champion}
+              onValueChange={setChampion}
+              teams={teams}
               disabled={readOnly}
-            >
-              <SelectTrigger className="mt-1 bg-zinc-950">
-                <SelectValue placeholder="Elegir equipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
           <div>
             <Label>{COPY.honor.sections.runner_up}</Label>
-            <Select
-              value={runner || undefined}
-              onValueChange={(v) => setRunner(v ?? "")}
+            <TeamSelect
+              value={runner}
+              onValueChange={setRunner}
+              teams={teams}
               disabled={readOnly}
-            >
-              <SelectTrigger className="mt-1 bg-zinc-950">
-                <SelectValue placeholder="Elegir equipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
           <div>
             <Label>{COPY.honor.sections.third}</Label>
-            <Select
-              value={third || undefined}
-              onValueChange={(v) => setThird(v ?? "")}
+            <TeamSelect
+              value={third}
+              onValueChange={setThird}
+              teams={teams}
               disabled={readOnly}
-            >
-              <SelectTrigger className="mt-1 bg-zinc-950">
-                <SelectValue placeholder="Elegir equipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
           <div>
             <Label>{COPY.honor.sections.top_scorer}</Label>

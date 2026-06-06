@@ -15,6 +15,7 @@ import { TournamentLockBanner } from "@/components/tournament-lock-banner";
 import { PredictedProjectionPanel } from "@/components/pool/predicted-projection-panel";
 import { PredictionProgress } from "@/components/pool/prediction-progress";
 import type { TournamentLockState } from "@/lib/tournament-lock";
+import { matchesForSection, PREDICTION_SECTIONS } from "@/lib/match-sections";
 
 type MatchRow = {
   id: string;
@@ -214,8 +215,16 @@ export default function PoolPredictPage() {
           quién pasa para completar tu cuadro. Los equipos KO se muestran según tu proyección cuando aún
           no están definidos oficialmente.
         </p>
-        <div className="space-y-3">
-          {matches.map((m) => {
+        {PREDICTION_SECTIONS.map((section) => {
+          const sectionMatches = matchesForSection(matches, section.min, section.max);
+          if (sectionMatches.length === 0) return null;
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="mb-3 border-b border-zinc-800 pb-2 text-lg font-bold text-yellow-500">
+                {section.label}
+              </h2>
+              <div className="space-y-3">
+                {sectionMatches.map((m) => {
             const proj = projectedKo.get(m.match_number);
             const homeId = m.home_team_id ?? proj?.home_team_id ?? null;
             const awayId = m.away_team_id ?? proj?.away_team_id ?? null;
@@ -355,7 +364,27 @@ export default function PoolPredictPage() {
                 )}
               </div>
             );
-          })}
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        <div className="mt-10 rounded-2xl border border-yellow-500/30 bg-yellow-500/5 p-6 text-center">
+          <p className="mb-4 text-sm text-zinc-300">
+            ¿Ya guardaste tus marcadores? Completa también el{" "}
+            <strong className="text-white">cuadro de honor</strong> (campeón, goleador, premios FIFA…)
+            antes del cierre del plazo.
+          </p>
+          <Link
+            href={`/pool/${poolId}/honor`}
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "bg-yellow-500 text-black hover:bg-yellow-400"
+            )}
+          >
+            Ir al cuadro de honor
+          </Link>
         </div>
       </main>
     </>
