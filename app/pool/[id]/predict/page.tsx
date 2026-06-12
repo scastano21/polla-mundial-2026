@@ -11,7 +11,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { TournamentLockBanner } from "@/components/tournament-lock-banner";
 import { PredictedProjectionPanel } from "@/components/pool/predicted-projection-panel";
 import { PredictionProgress } from "@/components/pool/prediction-progress";
 import type { TournamentLockState } from "@/lib/tournament-lock";
@@ -205,7 +204,6 @@ export default function PoolPredictPage() {
             Tabla
           </Link>
         </div>
-        <TournamentLockBanner className="mb-4" />
         <PredictionProgress poolId={poolId} className="mb-4" />
         <PredictedProjectionPanel poolId={poolId} refreshKey={projRefresh} />
         <PoolScoringBlurb rules={rules} className="mt-4 mb-4" />

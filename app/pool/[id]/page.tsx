@@ -7,9 +7,7 @@ import { countPoolMembers, fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { TournamentLockBanner } from "@/components/tournament-lock-banner";
 import { PredictionProgress } from "@/components/pool/prediction-progress";
-import { fetchTournamentLockState } from "@/lib/tournament-lock";
 import { AdSlot } from "@/components/ads/AdSlot";
 
 export const dynamic = "force-dynamic";
@@ -35,10 +33,9 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
     redirect("/dashboard");
   }
 
-  const [leaderboard, memberCountDb, lockState] = await Promise.all([
+  const [leaderboard, memberCountDb] = await Promise.all([
     fetchPoolLeaderboard(supabase, pool.id),
     countPoolMembers(pool.id),
-    fetchTournamentLockState(supabase),
   ]);
 
   const isAdmin = pool.admin_id === user.id;
@@ -93,14 +90,15 @@ export default async function PoolDetailPage({ params }: { params: { id: string 
           </div>
         </div>
 
-        <TournamentLockBanner className="mb-4" />
-        {lockState.open && <PredictionProgress poolId={pool.id} className="mb-4" />}
+        <PredictionProgress poolId={pool.id} className="mb-4" />
 
         <h2 className="mb-3 text-lg font-bold text-white">Tabla</h2>
         <PoolLeaderboardTable
           poolId={pool.id}
           initialRows={leaderboard}
           memberCountHint={memberCountDb}
+          isAdmin={isAdmin}
+          poolAdminId={pool.admin_id}
         />
 
         <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_POOL?.trim() || ""} className="mt-6" />

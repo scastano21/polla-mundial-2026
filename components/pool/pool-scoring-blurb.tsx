@@ -42,7 +42,8 @@ export function PoolScoringBlurb({
       <ul className="list-inside list-disc space-y-1 text-zinc-400">
         <li>
           <strong className="text-zinc-200">Tabla:</strong> gana quien sume más puntos; si empatan, sube quien tenga más{" "}
-          <strong className="text-yellow-500">marcadores exactos</strong>.
+          <strong className="text-yellow-500">marcadores exactos</strong>; si siguen empatados, quien se{" "}
+          <strong className="text-yellow-500">unió primero</strong> a la polla.
         </li>
         <li>
           <strong className="text-zinc-200">Por partido:</strong> marcador exacto <strong className="text-yellow-500">{e} pts</strong>;

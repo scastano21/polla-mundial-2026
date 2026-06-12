@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { COPY } from "@/lib/copy";
-import { TournamentLockBanner } from "@/components/tournament-lock-banner";
 import { TeamSelect } from "@/components/pool/team-select";
 import type { TournamentLockState } from "@/lib/tournament-lock";
 
@@ -118,7 +117,6 @@ export default function PoolHonorPage() {
         <h1 className="text-2xl font-black text-white">{COPY.honor.title}</h1>
         <p className="mt-2 text-sm text-zinc-400">{COPY.honor.subtitle}</p>
         <p className="mt-1 text-xs text-yellow-600/90">{COPY.honor.deadline}</p>
-        <TournamentLockBanner className="mt-4" />
 
         <div className="mt-8 space-y-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
           <div>

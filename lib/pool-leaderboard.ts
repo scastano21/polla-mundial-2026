@@ -9,6 +9,7 @@ export type PoolLeaderboardRow = {
   exact_scores: number;
   correct_results: number;
   rank: number | null;
+  joined_at: string | null;
 };
 
 type MemberWithProfile = {
@@ -17,6 +18,7 @@ type MemberWithProfile = {
   exact_scores: number | null;
   correct_results: number | null;
   rank: number | null;
+  joined_at: string | null;
   profiles:
     | { username: string; display_name: string | null }
     | { username: string; display_name: string | null }[]
@@ -25,11 +27,17 @@ type MemberWithProfile = {
 
 function compareLeaderboard(a: PoolLeaderboardRow, b: PoolLeaderboardRow): number {
   if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-  return b.exact_scores - a.exact_scores;
+  if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores;
+  const ja = a.joined_at ? new Date(a.joined_at).getTime() : Number.MAX_SAFE_INTEGER;
+  const jb = b.joined_at ? new Date(b.joined_at).getTime() : Number.MAX_SAFE_INTEGER;
+  if (ja !== jb) return ja - jb;
+  return a.user_id.localeCompare(b.user_id);
 }
 
-function sortLeaderboardRows(rows: PoolLeaderboardRow[]): PoolLeaderboardRow[] {
-  return [...rows].sort(compareLeaderboard);
+/** Ordena y asigna posiciones 1..n (ignora rank obsoleto en BD). */
+export function sortAndRankLeaderboard(rows: PoolLeaderboardRow[]): PoolLeaderboardRow[] {
+  const sorted = [...rows].sort(compareLeaderboard);
+  return sorted.map((r, i) => ({ ...r, rank: i + 1 }));
 }
 
 function mapRows(members: MemberWithProfile[]): PoolLeaderboardRow[] {
@@ -43,6 +51,7 @@ function mapRows(members: MemberWithProfile[]): PoolLeaderboardRow[] {
       exact_scores: m.exact_scores ?? 0,
       correct_results: m.correct_results ?? 0,
       rank: m.rank,
+      joined_at: m.joined_at ?? null,
     };
   });
 }
@@ -60,23 +69,20 @@ export async function loadLeaderboardFromDb(
       exact_scores,
       correct_results,
       rank,
+      joined_at,
       profiles ( username, display_name )
     `
     )
-    .eq("pool_id", poolId)
-    .order("total_points", { ascending: false })
-    .order("exact_scores", { ascending: false });
+    .eq("pool_id", poolId);
 
   if (!embedErr && embedded?.length) {
-    return sortLeaderboardRows(mapRows(embedded as MemberWithProfile[]));
+    return sortAndRankLeaderboard(mapRows(embedded as MemberWithProfile[]));
   }
 
   const { data: members, error: mErr } = await client
     .from("pool_members")
-    .select("user_id, total_points, exact_scores, correct_results, rank")
-    .eq("pool_id", poolId)
-    .order("total_points", { ascending: false })
-    .order("exact_scores", { ascending: false });
+    .select("user_id, total_points, exact_scores, correct_results, rank, joined_at")
+    .eq("pool_id", poolId);
 
   if (mErr || !members?.length) {
     if (embedErr) console.warn("[pool-leaderboard] embed:", embedErr.message);
@@ -92,7 +98,7 @@ export async function loadLeaderboardFromDb(
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-  return sortLeaderboardRows(
+  return sortAndRankLeaderboard(
     members.map((m) => {
       const p = profileMap.get(m.user_id);
       return {
@@ -103,6 +109,7 @@ export async function loadLeaderboardFromDb(
         exact_scores: m.exact_scores ?? 0,
         correct_results: m.correct_results ?? 0,
         rank: m.rank,
+        joined_at: m.joined_at ?? null,
       };
     })
   );
@@ -138,7 +145,12 @@ export async function fetchPoolLeaderboard(
   });
 
   if (!rpcErr && Array.isArray(viaRpc) && viaRpc.length > 0) {
-    return sortLeaderboardRows(viaRpc as PoolLeaderboardRow[]);
+    return sortAndRankLeaderboard(
+      (viaRpc as PoolLeaderboardRow[]).map((r) => ({
+        ...r,
+        joined_at: r.joined_at ?? null,
+      }))
+    );
   }
 
   if (rpcErr) {
