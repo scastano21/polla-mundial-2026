@@ -186,21 +186,7 @@ export type KnockoutPredictionScores = {
   advanceTeamId?: string | null;
 };
 
-function winnerFromPrediction(
-  homeId: string | null,
-  awayId: string | null,
-  pred: KnockoutPredictionScores
-): string | null {
-  if (!homeId || !awayId) return null;
-  if (pred.home > pred.away) return homeId;
-  if (pred.away > pred.home) return awayId;
-  if (pred.home === pred.away && pred.advanceTeamId) {
-    if (pred.advanceTeamId === homeId || pred.advanceTeamId === awayId) {
-      return pred.advanceTeamId;
-    }
-  }
-  return null;
-}
+import { winnerFromPrediction } from "@/lib/bracket/knockout-projection-eligibility";
 
 function propagateKnockout(
   initial: Map<number, KnockoutPair>,

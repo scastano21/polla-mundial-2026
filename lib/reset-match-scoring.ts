@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { pointsForPrediction, type ScoringRulesRow } from "@/lib/scoring";
+import { type ScoringRulesRow } from "@/lib/scoring";
 import { rebuildGroupStandings } from "@/lib/rebuild-standings";
 
 type PredictionRow = {
@@ -8,7 +8,22 @@ type PredictionRow = {
   pool_id: string;
   predicted_home_score: number;
   predicted_away_score: number;
+  points_earned: number | null;
 };
+
+function flagsFromPointsEarned(
+  earned: number | null,
+  rules: ScoringRulesRow
+): { points: number; exact: boolean; correctResultOnly: boolean } {
+  const p = earned ?? 0;
+  if (p === rules.exact_score_points) {
+    return { points: p, exact: true, correctResultOnly: false };
+  }
+  if (p === rules.correct_result_points) {
+    return { points: p, exact: false, correctResultOnly: true };
+  }
+  return { points: p, exact: false, correctResultOnly: false };
+}
 
 /**
  * Devuelve un partido a “programado”, quita marcador y revierte puntos de pronósticos.
@@ -33,7 +48,7 @@ export async function resetMatchToScheduled(supabase: SupabaseClient, matchId: s
 
   const { data: predictions, error: pErr } = await supabase
     .from("predictions")
-    .select("id, user_id, pool_id, predicted_home_score, predicted_away_score")
+    .select("id, user_id, pool_id, predicted_home_score, predicted_away_score, points_earned")
     .eq("match_id", matchId);
   if (pErr) throw pErr;
 
@@ -55,13 +70,7 @@ export async function resetMatchToScheduled(supabase: SupabaseClient, matchId: s
 
   for (const pred of preds) {
     const rules = rulesMap.get(pred.pool_id)!;
-    const old = pointsForPrediction(
-      rules,
-      pred.predicted_home_score,
-      pred.predicted_away_score,
-      prevHome,
-      prevAway
-    );
+    const old = flagsFromPointsEarned(pred.points_earned, rules);
 
     await supabase
       .from("predictions")

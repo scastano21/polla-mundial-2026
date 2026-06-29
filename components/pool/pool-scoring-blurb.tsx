@@ -50,10 +50,15 @@ export function PoolScoringBlurb({
           solo 1-X-2 <strong className="text-yellow-500">{r} pts</strong> (sin doble bonus).
         </li>
         <li>
-          <strong className="text-zinc-200">Por clasificados (eliminatoria):</strong>{" "}
-          <strong className="text-yellow-500">{adv} pts</strong> por cada equipo que tengas en una ronda KO (dieciseisavos,
-          octavos, cuartos, semifinal o final) y que oficialmente llegue a esa misma ronda — aunque falles el marcador del
-          partido.
+          <strong className="text-zinc-200">Eliminatoria (dieciseisavos en adelante):</strong> solo sumas por marcador si ese cruce existía en{" "}
+          <strong className="text-yellow-500">tu proyección</strong> (tablas de grupos + eliminatoria simulada). Si el partido oficial no
+          coincide con tu cuadro proyectado, no sumas por ese marcador. Cuando sí coincide, aplican las mismas reglas de exacto ({e} pts) y
+          resultado ({r} pts).
+        </li>
+        <li>
+          <strong className="text-zinc-200">Pase de ronda (eliminatoria):</strong> en cruces que sí estaban en tu proyección, sumas{" "}
+          <strong className="text-yellow-500">{adv} pts</strong> extra si acertaste qué equipo pasa (incluye penales en tu pronóstico). Si
+          fallas el pase, solo cuentan los puntos del marcador cuando aplique.
         </li>
         <li>
           <strong className="text-zinc-200">Cuadro de honor</strong> (una sola vez, antes del Mundial): cuando el admin cierre los

@@ -1,4 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  buildPredictionProjection,
+  type KnockoutPredictionScores,
+} from "@/lib/bracket/predicted-projection";
+import {
+  KNOCKOUT_PROJECTION_SCORING_MIN,
+  pairAtMatchNumber,
+  projectedPairMatchesOfficial,
+} from "@/lib/bracket/knockout-projection-eligibility";
 import { pointsForPrediction, type ScoringRulesRow } from "@/lib/scoring";
 
 type PredictionRow = {
@@ -8,6 +17,26 @@ type PredictionRow = {
   predicted_home_score: number;
   predicted_away_score: number;
   points_earned: number | null;
+};
+
+type MatchRow = {
+  id: string;
+  match_number: number;
+  home_team_id: string | null;
+  away_team_id: string | null;
+};
+
+type AllMatchRow = MatchRow & {
+  group_letter: string | null;
+};
+
+type StoredPredictionRow = {
+  user_id: string;
+  pool_id: string;
+  match_id: string;
+  predicted_home_score: number;
+  predicted_away_score: number;
+  predicted_advance_team_id: string | null;
 };
 
 function outcomeFlags(
@@ -26,6 +55,48 @@ function outcomeFlags(
   return { points, exact, correctResultOnly };
 }
 
+function flagsFromPointsEarned(
+  earned: number | null,
+  rules: ScoringRulesRow
+): { points: number; exact: boolean; correctResultOnly: boolean } {
+  const p = earned ?? 0;
+  if (p === rules.exact_score_points) {
+    return { points: p, exact: true, correctResultOnly: false };
+  }
+  if (p === rules.correct_result_points) {
+    return { points: p, exact: false, correctResultOnly: true };
+  }
+  return { points: p, exact: false, correctResultOnly: false };
+}
+
+function buildPredMap(rows: StoredPredictionRow[]): Map<string, KnockoutPredictionScores> {
+  const predMap = new Map<string, KnockoutPredictionScores>();
+  for (const p of rows) {
+    predMap.set(p.match_id, {
+      home: p.predicted_home_score,
+      away: p.predicted_away_score,
+      advanceTeamId: p.predicted_advance_team_id,
+    });
+  }
+  return predMap;
+}
+
+function isKnockoutProjectionEligible(
+  allMatches: AllMatchRow[],
+  predictionsByUserPool: Map<string, StoredPredictionRow[]>,
+  poolId: string,
+  userId: string,
+  matchNumber: number,
+  officialHome: string | null,
+  officialAway: string | null
+): boolean {
+  const key = `${poolId}:${userId}`;
+  const rows = predictionsByUserPool.get(key) ?? [];
+  const projection = buildPredictionProjection(allMatches, buildPredMap(rows));
+  const projected = pairAtMatchNumber(projection.knockoutPairs, matchNumber);
+  return projectedPairMatchesOfficial(projected, officialHome, officialAway);
+}
+
 export async function recalculatePointsForMatch(
   supabase: SupabaseClient,
   matchId: string,
@@ -34,9 +105,21 @@ export async function recalculatePointsForMatch(
   previousHome: number | null,
   previousAway: number | null
 ): Promise<void> {
+  const { data: match, error: matchErr } = await supabase
+    .from("matches")
+    .select("id, match_number, home_team_id, away_team_id")
+    .eq("id", matchId)
+    .single();
+  if (matchErr || !match) throw matchErr ?? new Error("Partido no encontrado");
+
+  const matchRow = match as MatchRow;
+  const usesProjection = matchRow.match_number >= KNOCKOUT_PROJECTION_SCORING_MIN;
+
   const { data: predictions, error } = await supabase
     .from("predictions")
-    .select("id, user_id, pool_id, predicted_home_score, predicted_away_score, points_earned")
+    .select(
+      "id, user_id, pool_id, predicted_home_score, predicted_away_score, points_earned"
+    )
     .eq("match_id", matchId);
   if (error) throw error;
 
@@ -56,17 +139,59 @@ export async function recalculatePointsForMatch(
     });
   }
 
+  let allMatches: AllMatchRow[] = [];
+  let predictionsByUserPool = new Map<string, StoredPredictionRow[]>();
+
+  if (usesProjection && preds.length > 0) {
+    const { data: matchRows, error: mErr } = await supabase
+      .from("matches")
+      .select("id, match_number, group_letter, home_team_id, away_team_id")
+      .order("match_number");
+    if (mErr) throw mErr;
+    allMatches = (matchRows ?? []) as AllMatchRow[];
+
+    const { data: allPredRows, error: apErr } = await supabase
+      .from("predictions")
+      .select(
+        "user_id, pool_id, match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id"
+      )
+      .in("pool_id", poolIds);
+    if (apErr) throw apErr;
+
+    for (const p of (allPredRows ?? []) as StoredPredictionRow[]) {
+      const key = `${p.pool_id}:${p.user_id}`;
+      if (!predictionsByUserPool.has(key)) predictionsByUserPool.set(key, []);
+      predictionsByUserPool.get(key)!.push(p);
+    }
+  }
+
+  const hadPrevious = previousHome != null && previousAway != null;
+  const sameScore = hadPrevious && previousHome === newHome && previousAway === newAway;
+
   for (const pred of preds) {
     const rules = rulesMap.get(pred.pool_id)!;
 
-    const hadPrevious =
-      previousHome != null && previousAway != null;
+    const old = sameScore
+      ? flagsFromPointsEarned(pred.points_earned, rules)
+      : hadPrevious
+        ? outcomeFlags(rules, pred, previousHome!, previousAway!)
+        : { points: 0, exact: false, correctResultOnly: false };
 
-    const old = hadPrevious
-      ? outcomeFlags(rules, pred, previousHome, previousAway)
+    const eligible =
+      !usesProjection ||
+      isKnockoutProjectionEligible(
+        allMatches,
+        predictionsByUserPool,
+        pred.pool_id,
+        pred.user_id,
+        matchRow.match_number,
+        matchRow.home_team_id,
+        matchRow.away_team_id
+      );
+
+    const neu = eligible
+      ? outcomeFlags(rules, pred, newHome, newAway)
       : { points: 0, exact: false, correctResultOnly: false };
-
-    const neu = outcomeFlags(rules, pred, newHome, newAway);
 
     const deltaPoints = neu.points - old.points;
     const deltaExact = (neu.exact ? 1 : 0) - (old.exact ? 1 : 0);
@@ -95,4 +220,33 @@ export async function recalculatePointsForMatch(
   for (const poolId of poolIds) {
     await supabase.rpc("recalculate_pool_rankings", { p_pool_id: poolId });
   }
+}
+
+/** Recalcula puntos de todos los partidos KO ya cerrados (p. ej. tras cambiar reglas de proyección). */
+export async function recalculateAllFinishedKnockoutMatchPoints(
+  supabase: SupabaseClient
+): Promise<{ matches: number }> {
+  const { data: matches, error } = await supabase
+    .from("matches")
+    .select("id, home_score, away_score")
+    .gte("match_number", KNOCKOUT_PROJECTION_SCORING_MIN)
+    .eq("status", "finished")
+    .not("home_score", "is", null)
+    .not("away_score", "is", null)
+    .order("match_number");
+
+  if (error) throw error;
+
+  for (const m of matches ?? []) {
+    await recalculatePointsForMatch(
+      supabase,
+      m.id,
+      m.home_score!,
+      m.away_score!,
+      m.home_score,
+      m.away_score
+    );
+  }
+
+  return { matches: matches?.length ?? 0 };
 }
