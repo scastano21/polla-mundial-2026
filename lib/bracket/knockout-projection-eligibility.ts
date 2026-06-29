@@ -76,3 +76,23 @@ export function pairAtMatchNumber(
 ): KnockoutPair | undefined {
   return pairs.find((p) => p.match_number === matchNumber);
 }
+
+/** En la UI de pronósticos KO se muestra el cuadro del usuario, no el oficial. */
+export function teamsForUserKnockoutPrediction(
+  matchNumber: number,
+  officialHome: string | null,
+  officialAway: string | null,
+  projected: { home_team_id: string | null; away_team_id: string | null } | undefined
+): { homeId: string | null; awayId: string | null; fromProjection: boolean } {
+  if (matchNumber < KNOCKOUT_PROJECTION_SCORING_MIN) {
+    return { homeId: officialHome, awayId: officialAway, fromProjection: false };
+  }
+  if (projected?.home_team_id || projected?.away_team_id) {
+    return {
+      homeId: projected.home_team_id,
+      awayId: projected.away_team_id,
+      fromProjection: true,
+    };
+  }
+  return { homeId: null, awayId: null, fromProjection: true };
+}

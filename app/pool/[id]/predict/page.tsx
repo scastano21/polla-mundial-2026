@@ -15,6 +15,7 @@ import { PredictedProjectionPanel } from "@/components/pool/predicted-projection
 import { PredictionProgress } from "@/components/pool/prediction-progress";
 import type { TournamentLockState } from "@/lib/tournament-lock";
 import { matchesForSection, PREDICTION_SECTIONS } from "@/lib/match-sections";
+import { teamsForUserKnockoutPrediction } from "@/lib/bracket/knockout-projection-eligibility";
 
 type MatchRow = {
   id: string;
@@ -136,8 +137,12 @@ export default function PoolPredictPage() {
     const isKnockout = match.match_number >= 73;
     const isTie = h === a;
     const proj = projectedKo.get(match.match_number);
-    const homeId = match.home_team_id ?? proj?.home_team_id ?? null;
-    const awayId = match.away_team_id ?? proj?.away_team_id ?? null;
+    const { homeId, awayId } = teamsForUserKnockoutPrediction(
+      match.match_number,
+      match.home_team_id,
+      match.away_team_id,
+      proj
+    );
     let advanceTeamId: string | null = null;
     if (isKnockout && isTie) {
       advanceTeamId = cur.advanceTeamId;
@@ -210,8 +215,9 @@ export default function PoolPredictPage() {
         <p className="mb-4 text-sm text-zinc-400">
           Guarda tus marcadores de fase de grupos para ver tu tabla simulada y los cruces de eliminatoria
           (incluye 8 mejores terceros, reglas FIFA). En eliminatoria, si pronosticas empate, debes indicar
-          quién pasa para completar tu cuadro. Los equipos KO se muestran según tu proyección cuando aún
-          no están definidos oficialmente.
+          quién pasa para completar tu cuadro. Los cruces de eliminatoria siempre reflejan{" "}
+          <strong className="text-zinc-200">tu proyección</strong>, no el cuadro oficial del torneo (ese solo
+          define quién suma puntos al cerrar resultados).
         </p>
         {PREDICTION_SECTIONS.map((section) => {
           const sectionMatches = matchesForSection(matches, section.min, section.max);
@@ -224,11 +230,14 @@ export default function PoolPredictPage() {
               <div className="space-y-3">
                 {sectionMatches.map((m) => {
             const proj = projectedKo.get(m.match_number);
-            const homeId = m.home_team_id ?? proj?.home_team_id ?? null;
-            const awayId = m.away_team_id ?? proj?.away_team_id ?? null;
+            const { homeId, awayId, fromProjection } = teamsForUserKnockoutPrediction(
+              m.match_number,
+              m.home_team_id,
+              m.away_team_id,
+              proj
+            );
             const ht = homeId ? teams.get(homeId) : null;
             const at = awayId ? teams.get(awayId) : null;
-            const fromProjection = m.match_number >= 73 && (!m.home_team_id || !m.away_team_id) && !!proj;
             const cur = preds[m.id] ?? { h: "", a: "", locked: false, advanceTeamId: null };
             const disabled = globalClosed || m.status !== "scheduled" || cur.locked;
             const hNum = cur.h === "" ? NaN : parseInt(cur.h, 10);
