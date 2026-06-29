@@ -77,7 +77,43 @@ export function pairAtMatchNumber(
   return pairs.find((p) => p.match_number === matchNumber);
 }
 
-/** En la UI de pronósticos KO se muestra el cuadro del usuario, no el oficial. */
+/** Rangos de partidos para puntos por clasificado en cada ronda KO. */
+export const KNOCKOUT_ADVANCEMENT_ROUNDS = [
+  { id: "r32", label: "Dieciseisavos", min: 73, max: 88 },
+  { id: "r16", label: "Octavos", min: 89, max: 96 },
+  { id: "qf", label: "Cuartos", min: 97, max: 100 },
+  { id: "sf", label: "Semifinal", min: 101, max: 102 },
+  { id: "final", label: "Final", min: 104, max: 104 },
+] as const;
+
+export function teamsInMatchNumberRange(
+  pairs: { match_number: number; home_team_id: string | null; away_team_id: string | null }[],
+  min: number,
+  max: number
+): Set<string> {
+  const ids = new Set<string>();
+  for (const p of pairs) {
+    if (p.match_number < min || p.match_number > max) continue;
+    if (p.home_team_id) ids.add(p.home_team_id);
+    if (p.away_team_id) ids.add(p.away_team_id);
+  }
+  return ids;
+}
+
+/** +3 pts por cada equipo que está en la ronda oficial y en la proyección del usuario. */
+export function countAdvancementHits(
+  official: Set<string>,
+  predicted: Set<string>,
+  pointsPerTeam: number
+): number {
+  if (pointsPerTeam <= 0 || official.size === 0) return 0;
+  let hits = 0;
+  official.forEach((id) => {
+    if (predicted.has(id)) hits += 1;
+  });
+  return hits * pointsPerTeam;
+}
+
 export function teamsForUserKnockoutPrediction(
   matchNumber: number,
   officialHome: string | null,

@@ -4,12 +4,9 @@ import {
   type KnockoutPredictionScores,
 } from "@/lib/bracket/predicted-projection";
 import {
-  KNOCKOUT_ADVANCEMENT_BONUS_EXCLUDE,
-  KNOCKOUT_PROJECTION_SCORING_MIN,
-  pairAtMatchNumber,
-  projectedPairMatchesOfficial,
-  winnerFromFinishedMatch,
-  winnerFromPrediction,
+  countAdvancementHits,
+  KNOCKOUT_ADVANCEMENT_ROUNDS,
+  teamsInMatchNumberRange,
 } from "@/lib/bracket/knockout-projection-eligibility";
 
 type MatchRow = {
@@ -18,11 +15,6 @@ type MatchRow = {
   group_letter: string | null;
   home_team_id: string | null;
   away_team_id: string | null;
-  home_score: number | null;
-  away_score: number | null;
-  home_penalties: number | null;
-  away_penalties: number | null;
-  status: string;
 };
 
 type PredictionRow = {
@@ -41,37 +33,30 @@ function computeAdvancementPoints(
 ): number {
   if (pointsPerTeam <= 0) return 0;
 
+  const officialPairs = matches
+    .filter((m) => m.match_number >= 73 && m.match_number <= 104)
+    .map((m) => ({
+      match_number: m.match_number,
+      home_team_id: m.home_team_id,
+      away_team_id: m.away_team_id,
+    }));
+
   const projection = buildPredictionProjection(matches, predictions);
+  const predictedPairs = projection.knockoutPairs;
+
   let total = 0;
-
-  for (const m of matches) {
-    if (m.match_number < KNOCKOUT_PROJECTION_SCORING_MIN) continue;
-    if (KNOCKOUT_ADVANCEMENT_BONUS_EXCLUDE.has(m.match_number)) continue;
-    if (m.status !== "finished" || m.home_score == null || m.away_score == null) continue;
-
-    const projected = pairAtMatchNumber(projection.knockoutPairs, m.match_number);
-    if (!projectedPairMatchesOfficial(projected, m.home_team_id, m.away_team_id)) continue;
-
-    const pred = predictions.get(m.id);
-    if (!pred) continue;
-
-    const actualWinner = winnerFromFinishedMatch(m);
-    const predictedWinner = winnerFromPrediction(
-      m.home_team_id,
-      m.away_team_id,
-      pred
-    );
-
-    if (actualWinner && predictedWinner && actualWinner === predictedWinner) {
-      total += pointsPerTeam;
-    }
+  for (const round of KNOCKOUT_ADVANCEMENT_ROUNDS) {
+    const official = teamsInMatchNumberRange(officialPairs, round.min, round.max);
+    if (official.size === 0) continue;
+    const predicted = teamsInMatchNumberRange(predictedPairs, round.min, round.max);
+    total += countAdvancementHits(official, predicted, pointsPerTeam);
   }
-
   return total;
 }
 
 /**
- * Puntos por acertar el equipo que pasa de ronda en un cruce KO que coincidió con la proyección del usuario.
+ * Puntos por equipos que el usuario tenía en una ronda KO (según su proyección)
+ * y que oficialmente están en esa misma ronda (p. ej. +3 por cada clasificado a dieciseisavos).
  */
 export async function recalculateAdvancementPoints(
   supabase: SupabaseClient,
@@ -79,9 +64,7 @@ export async function recalculateAdvancementPoints(
 ): Promise<void> {
   const { data: matches, error: mErr } = await supabase
     .from("matches")
-    .select(
-      "id, match_number, group_letter, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, status"
-    )
+    .select("id, match_number, group_letter, home_team_id, away_team_id")
     .order("match_number");
   if (mErr) throw mErr;
   const matchRows = (matches ?? []) as MatchRow[];
