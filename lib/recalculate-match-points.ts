@@ -140,7 +140,7 @@ export async function recalculatePointsForMatch(
   }
 
   let allMatches: AllMatchRow[] = [];
-  let predictionsByUserPool = new Map<string, StoredPredictionRow[]>();
+  const predictionsByUserPool = new Map<string, StoredPredictionRow[]>();
 
   if (usesProjection && preds.length > 0) {
     const { data: matchRows, error: mErr } = await supabase
