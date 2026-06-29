@@ -8,6 +8,7 @@ import {
   pairAtMatchNumber,
   projectedPairMatchesOfficial,
 } from "@/lib/bracket/knockout-projection-eligibility";
+import { fetchAllPredictions } from "@/lib/fetch-all-predictions";
 import { pointsForPrediction, type ScoringRulesRow } from "@/lib/scoring";
 
 type PredictionRow = {
@@ -150,15 +151,9 @@ export async function recalculatePointsForMatch(
     if (mErr) throw mErr;
     allMatches = (matchRows ?? []) as AllMatchRow[];
 
-    const { data: allPredRows, error: apErr } = await supabase
-      .from("predictions")
-      .select(
-        "user_id, pool_id, match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id"
-      )
-      .in("pool_id", poolIds);
-    if (apErr) throw apErr;
+    const allPredRows = await fetchAllPredictions(supabase, { poolIds });
 
-    for (const p of (allPredRows ?? []) as StoredPredictionRow[]) {
+    for (const p of allPredRows as StoredPredictionRow[]) {
       const key = `${p.pool_id}:${p.user_id}`;
       if (!predictionsByUserPool.has(key)) predictionsByUserPool.set(key, []);
       predictionsByUserPool.get(key)!.push(p);

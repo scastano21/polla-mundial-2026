@@ -9,6 +9,7 @@ import {
   KNOCKOUT_ADVANCEMENT_ROUNDS,
   teamsInMatchNumberRange,
 } from "@/lib/bracket/knockout-projection-eligibility";
+import { fetchAllPredictions } from "@/lib/fetch-all-predictions";
 
 type MatchRow = {
   id: string;
@@ -29,6 +30,30 @@ type PredictionRow = {
   predicted_away_score: number;
   predicted_advance_team_id: string | null;
 };
+
+const PREDICTIONS_PAGE_SIZE = 1000;
+
+async function poolIdsToProcess(
+  supabase: SupabaseClient,
+  poolId?: string
+): Promise<string[]> {
+  if (poolId) return [poolId];
+
+  const ids = new Set<string>();
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("pool_members")
+      .select("pool_id")
+      .range(from, from + PREDICTIONS_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    for (const row of page) ids.add(row.pool_id);
+    if (page.length < PREDICTIONS_PAGE_SIZE) break;
+    from += PREDICTIONS_PAGE_SIZE;
+  }
+  return Array.from(ids);
+}
 
 function computeAdvancementPoints(
   matches: MatchRow[],
@@ -76,48 +101,38 @@ export async function recalculateAdvancementPoints(
   if (mErr) throw mErr;
   const matchRows = (matches ?? []) as MatchRow[];
 
-  let predQuery = supabase
-    .from("predictions")
-    .select(
-      "user_id, pool_id, match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id"
-    );
-  if (options?.poolId) predQuery = predQuery.eq("pool_id", options.poolId);
-  if (options?.userId) predQuery = predQuery.eq("user_id", options.userId);
+  const poolIds = await poolIdsToProcess(supabase, options?.poolId);
 
-  const { data: predRows, error: pErr } = await predQuery;
-  if (pErr) throw pErr;
+  for (const currentPoolId of poolIds) {
+    const predRows = (await fetchAllPredictions(supabase, {
+      poolId: currentPoolId,
+      userId: options?.userId,
+    })) as PredictionRow[];
 
-  const predsByUserPool = new Map<string, PredictionRow[]>();
-  for (const p of (predRows ?? []) as PredictionRow[]) {
-    const key = `${p.pool_id}:${p.user_id}`;
-    if (!predsByUserPool.has(key)) predsByUserPool.set(key, []);
-    predsByUserPool.get(key)!.push(p);
-  }
+    const predsByUser = new Map<string, PredictionRow[]>();
+    for (const p of predRows) {
+      if (!predsByUser.has(p.user_id)) predsByUser.set(p.user_id, []);
+      predsByUser.get(p.user_id)!.push(p);
+    }
 
-  const poolIds = options?.poolId
-    ? [options.poolId]
-    : Array.from(new Set((predRows ?? []).map((p) => p.pool_id)));
-
-  for (const poolId of poolIds) {
     const { data: rules } = await supabase
       .from("scoring_rules")
       .select("advancement_team_points")
-      .eq("pool_id", poolId)
+      .eq("pool_id", currentPoolId)
       .maybeSingle();
     const pointsPerTeam = rules?.advancement_team_points ?? 3;
 
     let membersQuery = supabase
       .from("pool_members")
       .select("user_id, advancement_points")
-      .eq("pool_id", poolId);
+      .eq("pool_id", currentPoolId);
     if (options?.userId) membersQuery = membersQuery.eq("user_id", options.userId);
 
     const { data: members, error: memErr } = await membersQuery;
     if (memErr) throw memErr;
 
     for (const member of members ?? []) {
-      const key = `${poolId}:${member.user_id}`;
-      const rows = predsByUserPool.get(key) ?? [];
+      const rows = predsByUser.get(member.user_id) ?? [];
       const predMap = new Map<string, KnockoutPredictionScores>();
       for (const p of rows) {
         predMap.set(p.match_id, {
@@ -133,23 +148,25 @@ export async function recalculateAdvancementPoints(
 
       if (delta === 0 && newPoints === oldPoints) continue;
 
-      await supabase
+      const { error: updateErr } = await supabase
         .from("pool_members")
         .update({ advancement_points: newPoints })
-        .eq("pool_id", poolId)
+        .eq("pool_id", currentPoolId)
         .eq("user_id", member.user_id);
+      if (updateErr) throw updateErr;
 
       if (delta !== 0) {
-        await supabase.rpc("add_points_to_member", {
-          p_pool_id: poolId,
+        const { error: rpcErr } = await supabase.rpc("add_points_to_member", {
+          p_pool_id: currentPoolId,
           p_user_id: member.user_id,
           p_points_delta: delta,
           p_exact_delta: 0,
           p_result_delta: 0,
         });
+        if (rpcErr) throw rpcErr;
       }
     }
 
-    await supabase.rpc("recalculate_pool_rankings", { p_pool_id: poolId });
+    await supabase.rpc("recalculate_pool_rankings", { p_pool_id: currentPoolId });
   }
 }
