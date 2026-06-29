@@ -79,12 +79,52 @@ export function pairAtMatchNumber(
 
 /** Rangos de partidos para puntos por clasificado en cada ronda KO. */
 export const KNOCKOUT_ADVANCEMENT_ROUNDS = [
-  { id: "r32", label: "Dieciseisavos", min: 73, max: 88 },
-  { id: "r16", label: "Octavos", min: 89, max: 96 },
-  { id: "qf", label: "Cuartos", min: 97, max: 100 },
-  { id: "sf", label: "Semifinal", min: 101, max: 102 },
-  { id: "final", label: "Final", min: 104, max: 104 },
+  /** Clasificación a dieciseisavos: suma al definir el cuadro (grupos cerrados). */
+  { id: "r32", label: "Dieciseisavos", min: 73, max: 88, awardWhen: "bracket_ready" as const },
+  /** Pasar de ronda: suma cuando todos los partidos de la ronda terminaron. */
+  { id: "r16", label: "Octavos", min: 89, max: 96, awardWhen: "round_finished" as const },
+  { id: "qf", label: "Cuartos", min: 97, max: 100, awardWhen: "round_finished" as const },
+  { id: "sf", label: "Semifinal", min: 101, max: 102, awardWhen: "round_finished" as const },
+  { id: "final", label: "Final", min: 104, max: 104, awardWhen: "round_finished" as const },
 ] as const;
+
+type RoundMatch = {
+  match_number: number;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  status?: string;
+  home_score?: number | null;
+  away_score?: number | null;
+};
+
+export function isRoundBracketReady(matches: RoundMatch[], min: number, max: number): boolean {
+  const round = matches.filter((m) => m.match_number >= min && m.match_number <= max);
+  if (round.length === 0) return false;
+  return round.every((m) => m.home_team_id && m.away_team_id);
+}
+
+export function isRoundFullyFinished(matches: RoundMatch[], min: number, max: number): boolean {
+  const round = matches.filter((m) => m.match_number >= min && m.match_number <= max);
+  if (round.length === 0) return false;
+  return round.every(
+    (m) =>
+      m.status === "finished" &&
+      m.home_score != null &&
+      m.away_score != null &&
+      m.home_team_id &&
+      m.away_team_id
+  );
+}
+
+export function isAdvancementRoundReady(
+  round: (typeof KNOCKOUT_ADVANCEMENT_ROUNDS)[number],
+  matches: RoundMatch[]
+): boolean {
+  if (round.awardWhen === "bracket_ready") {
+    return isRoundBracketReady(matches, round.min, round.max);
+  }
+  return isRoundFullyFinished(matches, round.min, round.max);
+}
 
 export function teamsInMatchNumberRange(
   pairs: { match_number: number; home_team_id: string | null; away_team_id: string | null }[],

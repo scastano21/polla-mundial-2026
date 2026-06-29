@@ -5,6 +5,7 @@ import {
 } from "@/lib/bracket/predicted-projection";
 import {
   countAdvancementHits,
+  isAdvancementRoundReady,
   KNOCKOUT_ADVANCEMENT_ROUNDS,
   teamsInMatchNumberRange,
 } from "@/lib/bracket/knockout-projection-eligibility";
@@ -15,6 +16,9 @@ type MatchRow = {
   group_letter: string | null;
   home_team_id: string | null;
   away_team_id: string | null;
+  status: string;
+  home_score: number | null;
+  away_score: number | null;
 };
 
 type PredictionRow = {
@@ -46,6 +50,7 @@ function computeAdvancementPoints(
 
   let total = 0;
   for (const round of KNOCKOUT_ADVANCEMENT_ROUNDS) {
+    if (!isAdvancementRoundReady(round, matches)) continue;
     const official = teamsInMatchNumberRange(officialPairs, round.min, round.max);
     if (official.size === 0) continue;
     const predicted = teamsInMatchNumberRange(predictedPairs, round.min, round.max);
@@ -64,7 +69,9 @@ export async function recalculateAdvancementPoints(
 ): Promise<void> {
   const { data: matches, error: mErr } = await supabase
     .from("matches")
-    .select("id, match_number, group_letter, home_team_id, away_team_id")
+    .select(
+      "id, match_number, group_letter, home_team_id, away_team_id, status, home_score, away_score"
+    )
     .order("match_number");
   if (mErr) throw mErr;
   const matchRows = (matches ?? []) as MatchRow[];
