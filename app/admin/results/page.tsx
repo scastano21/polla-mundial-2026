@@ -73,6 +73,7 @@ export default function AdminResultsPage() {
 
 function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [busyAdv, setBusyAdv] = useState(false);
   const sync = async () => {
     setBusy(true);
     try {
@@ -81,36 +82,71 @@ function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
         error?: string;
         r32?: { ok: boolean; message: string; updated: number };
         propagated?: number;
+        knockoutMatchesRecalculated?: number;
       };
       if (!res.ok) {
         toast.error(j.error ?? "No se pudo sincronizar");
         return;
       }
       toast.success(j.r32?.message ?? "Cruces actualizados", {
-        description:
-          j.propagated != null ? `Propagación KO: ${j.propagated} asignación(es)` : undefined,
+        description: [
+          j.propagated != null ? `Propagación KO: ${j.propagated}` : null,
+          j.knockoutMatchesRecalculated != null
+            ? `Marcadores KO recalculados: ${j.knockoutMatchesRecalculated}`
+            : null,
+          "Puntos por clasificados actualizados",
+        ]
+          .filter(Boolean)
+          .join(" · "),
       });
       onSynced();
     } finally {
       setBusy(false);
     }
   };
+  const recalcAdvancement = async () => {
+    setBusyAdv(true);
+    try {
+      const res = await fetch("/api/admin/recalculate-advancement", { method: "POST" });
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        toast.error(j.error ?? "No se pudo recalcular");
+        return;
+      }
+      toast.success("Puntos por clasificados recalculados en todas las pollas");
+    } finally {
+      setBusyAdv(false);
+    }
+  };
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-zinc-700 bg-zinc-900 p-4">
       <p className="text-sm text-zinc-400">
         Al cerrar todos los grupos se rellenan los dieciseisavos (matriz FIFA). Tras cada KO, se
-        completan octavos en adelante.
+        completan octavos en adelante. Los <strong className="text-zinc-200">+3 por clasificado</strong>{" "}
+        se suman al sincronizar o con el botón de recalcular.
       </p>
-      <Button
-        type="button"
-        data-skip-nav-progress
-        variant="outline"
-        disabled={busy}
-        onClick={sync}
-        className="shrink-0 border-zinc-500 text-zinc-200 hover:bg-zinc-800"
-      >
-        {busy ? "Sincronizando…" : "Sincronizar cruces FIFA"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          data-skip-nav-progress
+          variant="outline"
+          disabled={busy}
+          onClick={sync}
+          className="shrink-0 border-zinc-500 text-zinc-200 hover:bg-zinc-800"
+        >
+          {busy ? "Sincronizando…" : "Sincronizar cruces FIFA"}
+        </Button>
+        <Button
+          type="button"
+          data-skip-nav-progress
+          variant="outline"
+          disabled={busyAdv}
+          onClick={recalcAdvancement}
+          className="shrink-0 border-yellow-600/50 text-yellow-500 hover:bg-yellow-500/10"
+        >
+          {busyAdv ? "Recalculando…" : "Recalcular +3 clasificados"}
+        </Button>
+      </div>
     </div>
   );
 }
