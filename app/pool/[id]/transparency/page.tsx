@@ -5,7 +5,13 @@ import { SiteHeader } from "@/components/site-header";
 import { COPY } from "@/lib/copy";
 import { PoolMembersReload } from "@/components/pool/pool-members-reload";
 import { countPoolMembers, fetchPoolLeaderboard } from "@/lib/pool-leaderboard";
+import { fetchAllPredictions } from "@/lib/fetch-all-predictions";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { tryCreateServiceClient } from "@/lib/supabase/service";
+import {
+  buildMatchScoreEligibility,
+  isMatchScoreEligible,
+} from "@/lib/transparency-match-eligibility";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +25,7 @@ type MatchRow = {
   away_score: number | null;
   home_team_id: string | null;
   away_team_id: string | null;
+  group_letter: string | null;
 };
 
 type PredRow = {
@@ -75,19 +82,23 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
     redirect("/dashboard");
   }
 
-  const [leaderboard, memberCountDb, { data: matches }, { data: teamRows }, { data: predictions }, { data: honors }, { data: honorTruth }] =
+  const [leaderboard, memberCountDb, { data: matches }, { data: teamRows }, { data: honors }, { data: honorTruth }] =
     await Promise.all([
       fetchPoolLeaderboard(supabase, pool.id),
       countPoolMembers(pool.id),
       supabase.from("matches").select("*").order("match_number"),
       supabase.from("teams").select("id, name, code"),
-      supabase
-        .from("predictions")
-        .select("user_id, match_id, predicted_home_score, predicted_away_score, points_earned")
-        .eq("pool_id", pool.id),
       supabase.from("honor_predictions").select("*").eq("pool_id", pool.id),
       supabase.from("honor_results").select("*").eq("tournament_year", 2026).maybeSingle(),
     ]);
+
+  let predictionRows = await fetchAllPredictions(supabase, { poolId: pool.id });
+  if (!predictionRows.length && memberCountDb != null && memberCountDb > 0) {
+    const svc = tryCreateServiceClient();
+    if (svc) {
+      predictionRows = await fetchAllPredictions(svc, { poolId: pool.id });
+    }
+  }
 
   const memberList = leaderboard.map((m) => ({
     user_id: m.user_id,
@@ -107,9 +118,33 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
   }
 
   const predMap = new Map<string, PredRow>();
-  for (const p of (predictions ?? []) as PredRow[]) {
-    predMap.set(`${p.user_id}:${p.match_id}`, p);
+  for (const p of predictionRows) {
+    predMap.set(`${p.user_id}:${p.match_id}`, {
+      user_id: p.user_id,
+      match_id: p.match_id,
+      predicted_home_score: p.predicted_home_score,
+      predicted_away_score: p.predicted_away_score,
+      points_earned: p.points_earned,
+    });
   }
+
+  const matchRows = (matches ?? []) as MatchRow[];
+  const scoreEligibility = buildMatchScoreEligibility(
+    matchRows.map((m) => ({
+      id: m.id,
+      match_number: m.match_number,
+      home_team_id: m.home_team_id,
+      away_team_id: m.away_team_id,
+      group_letter: m.group_letter,
+    })),
+    predictionRows.map((p) => ({
+      user_id: p.user_id,
+      match_id: p.match_id,
+      predicted_home_score: p.predicted_home_score,
+      predicted_away_score: p.predicted_away_score,
+      predicted_advance_team_id: p.predicted_advance_team_id,
+    }))
+  );
 
   const honorByUser = new Map<string, HonorRow>();
   for (const h of (honors ?? []) as HonorRow[]) {
@@ -147,8 +182,6 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
         young: truth.best_young_player_name?.trim() || "—",
       }
     : {};
-
-  const matchRows = (matches ?? []) as MatchRow[];
 
   return (
     <>
@@ -192,6 +225,13 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
         </div>
 
         <h2 className="mb-2 text-lg font-bold text-white print:text-black">Partidos</h2>
+        <p className="mb-3 text-xs text-zinc-500 print:text-zinc-600">
+          <span className="mr-1 inline-block rounded bg-green-500/20 px-2 py-0.5 text-zinc-300 print:bg-green-50 print:text-zinc-800">
+            Verde
+          </span>
+          = puede sumar puntos por marcador. En eliminatorias (#73 en adelante), solo si tu cuadro proyectado coincide
+          con el emparejamiento oficial de ese partido.
+        </p>
         <div className="mb-10 overflow-x-auto rounded-xl border border-zinc-800 print:border-zinc-300">
           <table className="w-full min-w-[640px] text-left text-[11px] text-zinc-200 print:text-black sm:text-xs">
             <thead className="bg-zinc-900 text-[10px] uppercase text-zinc-500 print:bg-zinc-100 print:text-zinc-700">
@@ -236,8 +276,22 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
                     </td>
                     {memberList.map((mem) => {
                       const pr = predMap.get(`${mem.user_id}:${m.id}`);
+                      const canScore = isMatchScoreEligible(scoreEligibility, mem.user_id, m.id);
                       return (
-                        <td key={mem.user_id} className="px-1 py-1.5 text-center font-mono text-zinc-300 print:text-black">
+                        <td
+                          key={mem.user_id}
+                          title={
+                            canScore
+                              ? "Puede sumar por marcador"
+                              : m.match_number >= 73
+                                ? "Emparejamiento distinto a tu cuadro proyectado"
+                                : undefined
+                          }
+                          className={cn(
+                            "px-1 py-1.5 text-center font-mono text-zinc-300 print:text-black",
+                            canScore && "bg-green-500/20 print:bg-green-50"
+                          )}
+                        >
                           {pr ? fmtPred(pr.predicted_home_score, pr.predicted_away_score) : "—"}
                         </td>
                       );

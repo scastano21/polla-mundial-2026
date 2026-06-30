@@ -9,6 +9,7 @@ export type PredictionQueryRow = {
   predicted_home_score: number;
   predicted_away_score: number;
   predicted_advance_team_id: string | null;
+  points_earned: number | null;
 };
 
 /** Supabase devuelve como máximo 1000 filas por consulta; paginar siempre. */
@@ -23,7 +24,7 @@ export async function fetchAllPredictions(
     let query = supabase
       .from("predictions")
       .select(
-        "user_id, pool_id, match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id"
+        "user_id, pool_id, match_id, predicted_home_score, predicted_away_score, predicted_advance_team_id, points_earned"
       );
     if (filters.poolId) query = query.eq("pool_id", filters.poolId);
     if (filters.poolIds?.length) query = query.in("pool_id", filters.poolIds);
