@@ -93,10 +93,11 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
     ]);
 
   let predictionRows = await fetchAllPredictions(supabase, { poolId: pool.id });
-  if (!predictionRows.length && memberCountDb != null && memberCountDb > 0) {
-    const svc = tryCreateServiceClient();
-    if (svc) {
-      predictionRows = await fetchAllPredictions(svc, { poolId: pool.id });
+  const svc = tryCreateServiceClient();
+  if (svc) {
+    const svcRows = await fetchAllPredictions(svc, { poolId: pool.id });
+    if (svcRows.length > predictionRows.length) {
+      predictionRows = svcRows;
     }
   }
 
@@ -136,6 +137,9 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
       home_team_id: m.home_team_id,
       away_team_id: m.away_team_id,
       group_letter: m.group_letter,
+      status: m.status,
+      home_score: m.home_score,
+      away_score: m.away_score,
     })),
     predictionRows.map((p) => ({
       user_id: p.user_id,
@@ -229,8 +233,9 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
           <span className="mr-1 inline-block rounded bg-green-500/20 px-2 py-0.5 text-zinc-300 print:bg-green-50 print:text-zinc-800">
             Verde
           </span>
-          = puede sumar puntos por marcador. En eliminatorias (#73 en adelante), solo si tu cuadro proyectado coincide
-          con el emparejamiento oficial de ese partido.
+          = puede sumar puntos en ese partido. En grupos, por marcador. En eliminatorias (#73 en adelante), por marcador
+          si tu cruce proyectado coincide con el oficial, o por clasificado (+3) si al menos un equipo de ese partido
+          está en tu proyección y llegó oficialmente a esa ronda.
         </p>
         <div className="mb-10 overflow-x-auto rounded-xl border border-zinc-800 print:border-zinc-300">
           <table className="w-full min-w-[640px] text-left text-[11px] text-zinc-200 print:text-black sm:text-xs">
@@ -282,9 +287,11 @@ export default async function PoolTransparencyPage({ params }: { params: { id: s
                           key={mem.user_id}
                           title={
                             canScore
-                              ? "Puede sumar por marcador"
+                              ? m.match_number >= 73
+                                ? "Puede sumar por marcador y/o por clasificado (+3)"
+                                : "Puede sumar por marcador"
                               : m.match_number >= 73
-                                ? "Emparejamiento distinto a tu cuadro proyectado"
+                                ? "Sin puntos por marcador ni clasificado en este partido"
                                 : undefined
                           }
                           className={cn(

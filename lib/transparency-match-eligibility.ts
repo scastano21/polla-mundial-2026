@@ -3,9 +3,13 @@ import {
   type KnockoutPredictionScores,
 } from "@/lib/bracket/predicted-projection";
 import {
+  KNOCKOUT_ADVANCEMENT_BONUS_EXCLUDE,
+  KNOCKOUT_ADVANCEMENT_ROUNDS,
   KNOCKOUT_PROJECTION_SCORING_MIN,
+  isAdvancementRoundReady,
   pairAtMatchNumber,
   projectedPairMatchesOfficial,
+  teamsInMatchNumberRange,
 } from "@/lib/bracket/knockout-projection-eligibility";
 
 type MatchRow = {
@@ -14,6 +18,9 @@ type MatchRow = {
   home_team_id: string | null;
   away_team_id: string | null;
   group_letter: string | null;
+  status?: string;
+  home_score?: number | null;
+  away_score?: number | null;
 };
 
 type PredictionInput = {
@@ -24,7 +31,31 @@ type PredictionInput = {
   predicted_advance_team_id: string | null;
 };
 
-/** userId → matchIds donde puede sumar por marcador según reglas actuales. */
+function roundForMatchNumber(matchNumber: number) {
+  return KNOCKOUT_ADVANCEMENT_ROUNDS.find(
+    (r) => matchNumber >= r.min && matchNumber <= r.max
+  );
+}
+
+function advancementHitTeamsForRound(
+  matches: MatchRow[],
+  projectedPairs: { match_number: number; home_team_id: string | null; away_team_id: string | null }[],
+  round: (typeof KNOCKOUT_ADVANCEMENT_ROUNDS)[number]
+): Set<string> | null {
+  if (!isAdvancementRoundReady(round, matches)) return null;
+
+  const official = teamsInMatchNumberRange(matches, round.min, round.max);
+  if (official.size === 0) return null;
+
+  const predicted = teamsInMatchNumberRange(projectedPairs, round.min, round.max);
+  const hits = new Set<string>();
+  official.forEach((id) => {
+    if (predicted.has(id)) hits.add(id);
+  });
+  return hits;
+}
+
+/** userId → matchIds donde puede sumar puntos (marcador y/o clasificado +3). */
 export function buildMatchScoreEligibility(
   matches: MatchRow[],
   predictions: PredictionInput[]
@@ -50,15 +81,39 @@ export function buildMatchScoreEligibility(
     const projection = buildPredictionProjection(matches, predMap);
     const eligible = new Set<string>();
 
+    const advancementByRound = new Map<string, Set<string>>();
+    for (const round of KNOCKOUT_ADVANCEMENT_ROUNDS) {
+      const hits = advancementHitTeamsForRound(matches, projection.knockoutPairs, round);
+      if (hits) advancementByRound.set(round.id, hits);
+    }
+
     for (const m of matches) {
+      if (!predMap.has(m.id)) continue;
+
       if (m.match_number < KNOCKOUT_PROJECTION_SCORING_MIN) {
         eligible.add(m.id);
         continue;
       }
+
       const projected = pairAtMatchNumber(projection.knockoutPairs, m.match_number);
-      if (
-        projectedPairMatchesOfficial(projected, m.home_team_id, m.away_team_id)
-      ) {
+      const marcador = projectedPairMatchesOfficial(
+        projected,
+        m.home_team_id,
+        m.away_team_id
+      );
+
+      let advancement = false;
+      if (!KNOCKOUT_ADVANCEMENT_BONUS_EXCLUDE.has(m.match_number)) {
+        const round = roundForMatchNumber(m.match_number);
+        const hitTeams = round ? advancementByRound.get(round.id) : undefined;
+        if (hitTeams) {
+          advancement =
+            (m.home_team_id != null && hitTeams.has(m.home_team_id)) ||
+            (m.away_team_id != null && hitTeams.has(m.away_team_id));
+        }
+      }
+
+      if (marcador || advancement) {
         eligible.add(m.id);
       }
     }
