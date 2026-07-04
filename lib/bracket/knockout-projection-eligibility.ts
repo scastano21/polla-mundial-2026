@@ -81,11 +81,11 @@ export function pairAtMatchNumber(
 export const KNOCKOUT_ADVANCEMENT_ROUNDS = [
   /** Clasificación a dieciseisavos: suma al definir el cuadro (grupos cerrados). */
   { id: "r32", label: "Dieciseisavos", min: 73, max: 88, awardWhen: "bracket_ready" as const },
-  /** Pasar de ronda: suma cuando todos los partidos de la ronda terminaron. */
-  { id: "r16", label: "Octavos", min: 89, max: 96, awardWhen: "round_finished" as const },
-  { id: "qf", label: "Cuartos", min: 97, max: 100, awardWhen: "round_finished" as const },
-  { id: "sf", label: "Semifinal", min: 101, max: 102, awardWhen: "round_finished" as const },
-  { id: "final", label: "Final", min: 104, max: 104, awardWhen: "round_finished" as const },
+  /** Clasificación a octavos/cuartos/etc.: suma cuando el cuadro de esa ronda está definido. */
+  { id: "r16", label: "Octavos", min: 89, max: 96, awardWhen: "bracket_ready" as const },
+  { id: "qf", label: "Cuartos", min: 97, max: 100, awardWhen: "bracket_ready" as const },
+  { id: "sf", label: "Semifinal", min: 101, max: 102, awardWhen: "bracket_ready" as const },
+  { id: "final", label: "Final", min: 104, max: 104, awardWhen: "bracket_ready" as const },
 ] as const;
 
 type RoundMatch = {

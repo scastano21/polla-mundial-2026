@@ -123,7 +123,8 @@ function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
       <p className="text-sm text-zinc-400">
         Al cerrar todos los grupos se rellenan los dieciseisavos (matriz FIFA). Tras cada KO, se
         completan octavos en adelante. Los <strong className="text-zinc-200">+3 por clasificado</strong>{" "}
-        se suman al sincronizar o con el botón de recalcular.
+        suman cuando el cuadro de cada ronda queda definido (octavos al terminar dieciseisavos, etc.).
+        Sincroniza o usa recalcular tras cargar resultados.
       </p>
       <div className="flex flex-wrap gap-2">
         <Button
