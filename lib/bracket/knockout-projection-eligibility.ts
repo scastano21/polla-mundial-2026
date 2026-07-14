@@ -3,9 +3,6 @@ import type { KnockoutPair, KnockoutPredictionScores } from "@/lib/bracket/predi
 /** Desde dieciseisavos (partidos 73–104). */
 export const KNOCKOUT_PROJECTION_SCORING_MIN = 73;
 
-/** Tercer puesto: no suma bonus por «pase de ronda». */
-export const KNOCKOUT_ADVANCEMENT_BONUS_EXCLUDE = new Set([103]);
-
 export function sameTeamPair(
   homeA: string | null,
   awayA: string | null,
@@ -88,6 +85,7 @@ export const KNOCKOUT_ADVANCEMENT_ROUNDS = [
   { id: "r16", label: "Octavos", min: 89, max: 96, awardWhen: "bracket_ready" as const },
   { id: "qf", label: "Cuartos", min: 97, max: 100, awardWhen: "bracket_ready" as const },
   { id: "sf", label: "Semifinal", min: 101, max: 102, awardWhen: "bracket_ready" as const },
+  { id: "third", label: "Tercer puesto", min: 103, max: 103, awardWhen: "bracket_ready" as const },
   { id: "final", label: "Final", min: 104, max: 104, awardWhen: "bracket_ready" as const },
 ] as const;
 
