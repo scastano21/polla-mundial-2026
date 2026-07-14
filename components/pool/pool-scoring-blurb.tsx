@@ -58,9 +58,11 @@ export function PoolScoringBlurb({
         <li>
           <strong className="text-zinc-200">Por clasificados (eliminatoria):</strong>{" "}
           <strong className="text-yellow-500">{adv} pts</strong> por cada equipo que tengas en una ronda KO según tu
-          proyección y que oficialmente llegue a esa misma ronda. Suman cuando el cuadro de esa ronda queda definido
-          (dieciseisavos al cerrar grupos; octavos cuando terminen los dieciseisavos y se asignen los cruces; y así
-          sucesivamente en cuartos, semifinal y final).
+          proyección y que oficialmente llegue a esa misma ronda; en la{" "}
+          <strong className="text-zinc-200">final</strong> suman{" "}
+          <strong className="text-yellow-500">6 pts</strong> por cada clasificado. Suman cuando el cuadro de esa ronda
+          queda definido (dieciseisavos al cerrar grupos; octavos cuando terminen los dieciseisavos y se asignen los
+          cruces; y así sucesivamente en cuartos, semifinal y final).
         </li>
         <li>
           <strong className="text-zinc-200">Cuadro de honor</strong> (una sola vez, antes del Mundial): cuando el admin cierre los

@@ -77,6 +77,9 @@ export function pairAtMatchNumber(
   return pairs.find((p) => p.match_number === matchNumber);
 }
 
+/** Puntos por clasificado a la final (el resto de rondas KO usa scoring_rules.advancement_team_points). */
+export const FINAL_ADVANCEMENT_TEAM_POINTS = 6;
+
 /** Rangos de partidos para puntos por clasificado en cada ronda KO. */
 export const KNOCKOUT_ADVANCEMENT_ROUNDS = [
   /** Clasificación a dieciseisavos: suma al definir el cuadro (grupos cerrados). */
@@ -87,6 +90,14 @@ export const KNOCKOUT_ADVANCEMENT_ROUNDS = [
   { id: "sf", label: "Semifinal", min: 101, max: 102, awardWhen: "bracket_ready" as const },
   { id: "final", label: "Final", min: 104, max: 104, awardWhen: "bracket_ready" as const },
 ] as const;
+
+export function advancementPointsForRound(
+  round: (typeof KNOCKOUT_ADVANCEMENT_ROUNDS)[number],
+  basePointsPerTeam: number
+): number {
+  if (round.id === "final") return FINAL_ADVANCEMENT_TEAM_POINTS;
+  return basePointsPerTeam;
+}
 
 type RoundMatch = {
   match_number: number;
@@ -140,7 +151,7 @@ export function teamsInMatchNumberRange(
   return ids;
 }
 
-/** +3 pts por cada equipo que está en la ronda oficial y en la proyección del usuario. */
+/** Puntos por cada equipo que está en la ronda oficial y en la proyección del usuario. */
 export function countAdvancementHits(
   official: Set<string>,
   predicted: Set<string>,

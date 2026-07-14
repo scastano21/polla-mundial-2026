@@ -4,6 +4,7 @@ import {
   type KnockoutPredictionScores,
 } from "@/lib/bracket/predicted-projection";
 import {
+  advancementPointsForRound,
   countAdvancementHits,
   isAdvancementRoundReady,
   KNOCKOUT_ADVANCEMENT_ROUNDS,
@@ -79,7 +80,8 @@ function computeAdvancementPoints(
     const official = teamsInMatchNumberRange(officialPairs, round.min, round.max);
     if (official.size === 0) continue;
     const predicted = teamsInMatchNumberRange(predictedPairs, round.min, round.max);
-    total += countAdvancementHits(official, predicted, pointsPerTeam);
+    const roundPoints = advancementPointsForRound(round, pointsPerTeam);
+    total += countAdvancementHits(official, predicted, roundPoints);
   }
   return total;
 }
