@@ -69,7 +69,8 @@ export function PoolScoringBlurb({
           <strong className="text-zinc-200">Cuadro de honor</strong> (una sola vez, antes del Mundial): cuando el admin cierre los
           ganadores oficiales, suman quien acierte campeón ({ch}), subcampeón ({ru}), tercero ({tp}), goleador ({ts}), mejor jugador (
           {bp}), mejor portero ({bk}), mejor joven ({by}). Los nombres de jugadores se comparan en minúsculas y pueden coincidir si uno
-          contiene al otro (evita fallar por un apellido de más o de menos).
+          contiene al otro (evita fallar por un apellido de más o de menos). También ignora tildes y typos
+          menores en los nombres.
         </li>
         <li>
           <strong className="text-zinc-200">Eliminatoria (oficial):</strong> cuando el admin cierra grupos, la app asigna dieciseisavos con la
