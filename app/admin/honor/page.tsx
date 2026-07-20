@@ -30,6 +30,8 @@ export default function AdminHonorPage() {
   const [isFinal, setIsFinal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     (async () => {
       const { data: t } = await supabase.from("teams").select("id, name").order("name");
@@ -54,26 +56,32 @@ export default function AdminHonorPage() {
   }, [supabase]);
 
   const save = async () => {
-    const res = await fetch("/api/admin/honor-results", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        championTeamId: champion || null,
-        runnerUpTeamId: runner || null,
-        thirdPlaceTeamId: third || null,
-        topScorerName: scorer || null,
-        bestPlayerName: best || null,
-        bestGoalkeeperName: keeper || null,
-        bestYoungPlayerName: young || null,
-        isFinal,
-      }),
-    });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast.error(j.error ?? "Error");
-      return;
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/honor-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          championTeamId: champion || null,
+          runnerUpTeamId: runner || null,
+          thirdPlaceTeamId: third || null,
+          topScorerName: scorer || null,
+          bestPlayerName: best || null,
+          bestGoalkeeperName: keeper || null,
+          bestYoungPlayerName: young || null,
+          isFinal,
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(j.error ?? "Error");
+        return;
+      }
+      toast.success("Guardado");
+    } finally {
+      setSaving(false);
     }
-    toast.success("Guardado");
   };
 
   if (loading) return <p className="p-8 text-zinc-400">Cargando…</p>;
@@ -159,9 +167,10 @@ export default function AdminHonorPage() {
           type="button"
           data-skip-nav-progress
           onClick={save}
+          disabled={saving}
           className="w-full bg-yellow-500 font-bold text-black"
         >
-          Guardar
+          {saving ? "Guardando…" : "Guardar"}
         </Button>
       </div>
     </main>

@@ -74,6 +74,7 @@ export default function AdminResultsPage() {
 function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
   const [busy, setBusy] = useState(false);
   const [busyAdv, setBusyAdv] = useState(false);
+  const [busyTotals, setBusyTotals] = useState(false);
   const sync = async () => {
     setBusy(true);
     try {
@@ -118,6 +119,28 @@ function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
       setBusyAdv(false);
     }
   };
+  const rebuildTotals = async () => {
+    setBusyTotals(true);
+    try {
+      const res = await fetch("/api/admin/rebuild-totals", { method: "POST" });
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        membersUpdated?: number;
+      };
+      if (!res.ok) {
+        toast.error(j.error ?? "No se pudieron reconstruir totales");
+        return;
+      }
+      toast.success("Totales reconstruidos", {
+        description:
+          j.membersUpdated != null
+            ? `${j.membersUpdated} integrante(s) corregidos (partidos + clasificados + honor)`
+            : "partidos + clasificados + honor",
+      });
+    } finally {
+      setBusyTotals(false);
+    }
+  };
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-zinc-700 bg-zinc-900 p-4">
       <p className="text-sm text-zinc-400">
@@ -146,6 +169,16 @@ function BracketSyncSection({ onSynced }: { onSynced: () => void }) {
           className="shrink-0 border-yellow-600/50 text-yellow-500 hover:bg-yellow-500/10"
         >
           {busyAdv ? "Recalculando…" : "Recalcular +3 clasificados"}
+        </Button>
+        <Button
+          type="button"
+          data-skip-nav-progress
+          variant="outline"
+          disabled={busyTotals}
+          onClick={rebuildTotals}
+          className="shrink-0 border-emerald-600/50 text-emerald-400 hover:bg-emerald-500/10"
+        >
+          {busyTotals ? "Corrigiendo…" : "Corregir totales"}
         </Button>
       </div>
     </div>

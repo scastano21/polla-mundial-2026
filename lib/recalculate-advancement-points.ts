@@ -11,6 +11,7 @@ import {
   teamsInMatchNumberRange,
 } from "@/lib/bracket/knockout-projection-eligibility";
 import { fetchAllPredictions } from "@/lib/fetch-all-predictions";
+import { rebuildMemberTotals } from "@/lib/rebuild-member-totals";
 
 type MatchRow = {
   id: string;
@@ -146,9 +147,7 @@ export async function recalculateAdvancementPoints(
 
       const newPoints = computeAdvancementPoints(matchRows, predMap, pointsPerTeam);
       const oldPoints = member.advancement_points ?? 0;
-      const delta = newPoints - oldPoints;
-
-      if (delta === 0 && newPoints === oldPoints) continue;
+      if (newPoints === oldPoints) continue;
 
       const { error: updateErr } = await supabase
         .from("pool_members")
@@ -156,19 +155,11 @@ export async function recalculateAdvancementPoints(
         .eq("pool_id", currentPoolId)
         .eq("user_id", member.user_id);
       if (updateErr) throw updateErr;
-
-      if (delta !== 0) {
-        const { error: rpcErr } = await supabase.rpc("add_points_to_member", {
-          p_pool_id: currentPoolId,
-          p_user_id: member.user_id,
-          p_points_delta: delta,
-          p_exact_delta: 0,
-          p_result_delta: 0,
-        });
-        if (rpcErr) throw rpcErr;
-      }
     }
 
-    await supabase.rpc("recalculate_pool_rankings", { p_pool_id: currentPoolId });
+    await rebuildMemberTotals(supabase, {
+      poolId: currentPoolId,
+      userId: options?.userId,
+    });
   }
 }

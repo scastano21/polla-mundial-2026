@@ -34,6 +34,7 @@ export type HonorRules = {
 };
 
 import { honorNamesMatch } from "@/lib/scoring";
+import { rebuildMemberTotals } from "@/lib/rebuild-member-totals";
 
 export function computeHonorPoints(rules: HonorRules, pred: HonorPred, off: HonorOfficial): number {
   let pts = 0;
@@ -64,6 +65,8 @@ export async function applyHonorFinalScoring(
   const { data: preds } = await supabase.from("honor_predictions").select("*");
   const predictions = (preds ?? []) as HonorPred[];
 
+  const poolIds = new Set<string>();
+
   for (const pred of predictions) {
     const { data: rulesRow } = await supabase
       .from("scoring_rules")
@@ -84,28 +87,19 @@ export async function applyHonorFinalScoring(
     };
 
     const newPts = computeHonorPoints(rules, pred, official);
-    const oldPts = pred.points_earned ?? 0;
-    const delta = newPts - oldPts;
 
-    await supabase
+    const { error } = await supabase
       .from("honor_predictions")
       .update({ points_earned: newPts, updated_at: new Date().toISOString() })
       .eq("user_id", pred.user_id)
       .eq("pool_id", pred.pool_id);
+    if (error) throw error;
 
-    if (delta !== 0) {
-      await supabase.rpc("add_points_to_member", {
-        p_pool_id: pred.pool_id,
-        p_user_id: pred.user_id,
-        p_points_delta: delta,
-        p_exact_delta: 0,
-        p_result_delta: 0,
-      });
-    }
+    poolIds.add(pred.pool_id);
   }
 
-  const poolIds = Array.from(new Set(predictions.map((p) => p.pool_id)));
-  for (const poolId of poolIds) {
-    await supabase.rpc("recalculate_pool_rankings", { p_pool_id: poolId });
+  // Reconstruir totales desde componentes (no deltas) para evitar doble conteo.
+  for (const poolId of Array.from(poolIds)) {
+    await rebuildMemberTotals(supabase, { poolId });
   }
 }
